@@ -1,0 +1,21 @@
+/* Hide the scrollbar by default */
+::-webkit-scrollbar {
+    width: 8px;
+    opacity: 0; /* Make it invisible */
+    transition: opacity 0.3s ease; /* Smooth transition for visibility */
+  }
+  
+  /* Show the scrollbar thumb */
+  ::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+  }
+  
+  /* Track color */
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  .hover-effect:hover {
+    background-color: #e5e7eb !important; /* gray-300 in Tailwind */
+    color: #6b7280 !important; /* gray-500 in Tailwind */
+  }  

@@ -1,0 +1,49 @@
+
+
+/* Hide scrollbar by default */
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+  /* Fully transparent when not hovered */
+}
+
+/* Show scrollbar only on hover */
+.sidebar:hover::-webkit-scrollbar {
+  background: rgba(193, 185, 185, 0.1);
+  /* Slight background */
+}
+
+.sidebar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.4);
+  /* Scrollbar color */
+  border-radius: 4px;
+}
+
+.sidebar:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.6);
+  /* Darker when hovered */
+}
+/* Tooltip Styling */
+.sidebar-tooltip {
+  position: absolute;
+  left: 80px; /* Ensures it is outside the collapsed sidebar */
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 14px;
+  white-space: nowrap;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+/* Show tooltip when hovering */
+.group:hover .sidebar-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
