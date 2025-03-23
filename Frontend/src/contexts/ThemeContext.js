@@ -21,7 +21,21 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [darkMode]);
 
-  const toggleDarkMode = () => setDarkMode((prevMode) => !prevMode);
+  const toggleDarkMode = () => {
+    setDarkMode((prevMode) => {
+      const newMode = !prevMode;
+      if (newMode) {
+        document.documentElement.classList.add("dark");
+        document.body.classList.add("dark");
+        localStorage.setItem("darkMode", "enabled");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.body.classList.remove("dark");
+        localStorage.setItem("darkMode", "disabled");
+      }
+      return newMode;
+    });
+  };
 
   return (
     <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>

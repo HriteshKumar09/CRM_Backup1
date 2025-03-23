@@ -57,6 +57,15 @@ const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const calendarRef = useRef(null);
 
+  // Add effect to handle dark mode changes
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     try {
