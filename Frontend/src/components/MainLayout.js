@@ -221,10 +221,11 @@ import ExpensesRecurring from "../pages/Expenses/Expenses-Recurring";
 import ExpensesCustom from "../pages/Expenses/Expenses-Custom";
 import Expenses from "../pages/Expenses/Expenses";
 
+import { useTheme } from "../contexts/ThemeContext";
 
 const MainLayout = () => {
   const [sidebarColor, setSidebarColor] = useState("");
-  const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") === "enabled");
+  const { darkMode } = useTheme();
 
   // Load sidebar state from localStorage (default: false if not found)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -264,19 +265,6 @@ const MainLayout = () => {
     });
   };
 
-  // 🟢 Apply Dark Mode on Mount & Toggle
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      document.body.classList.add("dark"); // Apply dark mode globally
-      localStorage.setItem("darkMode", "enabled");
-    } else {
-      document.documentElement.classList.remove("dark");
-      document.body.classList.remove("dark"); // Remove dark mode
-      localStorage.setItem("darkMode", "disabled");
-    }
-  }, [darkMode]);
-
   const [loading, setLoading] = useState(true);
 
   // Simulate a delay to show the loading effect
@@ -287,7 +275,7 @@ const MainLayout = () => {
   }, []);
 
   return (
-    <div className={`flex h-screen pt-6 md:pt-10 lg:pt-12 dark:bg-gray-700 dark:text-white ${darkMode ? "dark" : ""}`}>
+    <div className="flex h-screen pt-6 md:pt-10 lg:pt-12 dark:bg-gray-700 dark:text-white">
       {/* Sidebar */}
       <Sidebar selectedColor={sidebarColor} isCollapsed={isSidebarCollapsed} />
 
@@ -295,8 +283,6 @@ const MainLayout = () => {
         {/* Admin Header */}
         <AdminHeader
           onColorChange={setSidebarColor}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
           toggleSidebar={toggleSidebar}
           isCollapsed={isSidebarCollapsed}
         />

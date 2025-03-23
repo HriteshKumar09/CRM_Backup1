@@ -12,6 +12,8 @@ import ReminderModal from "../extra/Reminders";
 import { useTheme } from "../contexts/ThemeContext";
 import { RiLoader4Fill } from "react-icons/ri";
 import { Link } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
+import api from '../Services/api';
 
 const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -24,6 +26,8 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
   const { darkMode, toggleDarkMode } = useTheme();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [messages, setMessages] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const toggleReminderModal = () => setReminderModalOpen(!isReminderModalOpen);
 
@@ -45,17 +49,18 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
    // Fetch notifications
    useEffect(() => {
     const fetchNotifications = async () => {
-      const userId = getUserIdFromToken(); // Get userId from token
+      const userId = getUserIdFromToken();
       if (!userId) {
         console.error("User ID not found in token");
         return;
       }
 
       try {
-        const response = await fetch(`http://localhost:4008/notifications/${userId}`);
-        const data = await response.json();
-        setNotifications(data);
-        setUnreadCount(data.filter(notification => !notification.read).length);
+        const response = await api.get(`/notifications/${userId}`);
+        if (response.data.success) {
+          setNotifications(response.data.data);
+          setUnreadCount(response.data.data.filter(notification => !notification.read).length);
+        }
       } catch (error) {
         console.error("Error fetching notifications:", error);
       }
@@ -80,6 +85,57 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
       }
     } catch (error) {
       console.error("Error marking notification as read:", error);
+    }
+  };
+
+  // Fetch messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      const userId = getUserIdFromToken();
+      if (!userId) return;
+
+      try {
+        const response = await api.get(`/messages/user/${userId}`);
+        if (response.data.success) {
+          setMessages(response.data.data);
+          setUnreadMessages(response.data.data.filter(msg => msg.status === 'unread').length);
+        }
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    };
+
+    fetchMessages();
+  }, []);
+
+  // Mark message as read
+  const markMessageAsRead = async (messageId) => {
+    try {
+      const response = await api.put(`/messages/${messageId}/read`);
+      if (response.data.success) {
+        setMessages(messages.map(msg => 
+          msg.id === messageId ? { ...msg, status: 'read' } : msg
+        ));
+        setUnreadMessages(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = async () => {
+    const userId = getUserIdFromToken();
+    if (!userId) return;
+
+    try {
+      const response = await api.patch(`/notifications/${userId}/mark-all-read`);
+      if (response.data.success) {
+        setNotifications(notifications.map(notification => ({ ...notification, read: true })));
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
     }
   };
 
@@ -164,18 +220,75 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
   // Available routes for searching
   const routes = [
     { name: "Dashboard", path: "/dashboard" },
+    { name: "Events", path: "/dashboard/events" },
+    { name: "Riseguard Dashboard", path: "/dashboard/riseguard-dashboard" },
+    { name: "Riseguard Settings", path: "/dashboard/riseguard-settings" },
+    { name: "Polls", path: "/dashboard/polls" },
+    { name: "Recruitments Circulars", path: "/dashboard/Recruitments-Circulars" },
+    { name: "Recruitments Candidates", path: "/dashboard/Recruitments-Candidates" },
     { name: "Clients", path: "/dashboard/clients" },
     { name: "Projects", path: "/dashboard/projects" },
+    { name: "HR Payroll Employees", path: "/dashboard/Hr payroll-Employees" },
+    { name: "HR Payroll Attendance", path: "/dashboard/Hr payroll-Attendance" },
+    { name: "HR Payroll Commissions", path: "/dashboard/Hr payroll-Commissions" },
+    { name: "HR Payroll Deductions", path: "/dashboard/Hr payroll-Deductions" },
+    { name: "HR Payroll Bonus KPI", path: "/dashboard/Hr payroll-Bonus kpi" },
+    { name: "HR Payroll Insurance", path: "/dashboard/Hr payroll-Insurance" },
+    { name: "HR Payroll Payslips", path: "/dashboard/Hr payroll-Payslips" },
+    { name: "HR Payroll Payslip Templates", path: "/dashboard/Hr payroll-Payslips templates" },
+    { name: "HR Payroll Income Taxes", path: "/dashboard/Hr payroll-Income taxes" },
+    { name: "HR Payroll Reports", path: "/dashboard/Hr payroll-Reports" },
+    { name: "HR Payroll Settings", path: "/dashboard/Hr payroll-Settings" },
+    { name: "Purchase Items", path: "/dashboard/Purchase-Items" },
+    { name: "Purchase Vendors", path: "/dashboard/Purchase-Vendors" },
+    { name: "Purchase Vendor Items", path: "/dashboard/Purchase-Vendor-Items" },
+    { name: "Purchase Request", path: "/dashboard/Purchase-Purchase Request" },
+    { name: "Purchase Quotations", path: "/dashboard/Purchase-Quotations" },
+    { name: "Purchase Orders", path: "/dashboard/Purchase-Purchase Orders" },
+    { name: "Purchase Invoices", path: "/dashboard/Purchase-Invoices" },
+    { name: "Purchase Settings", path: "/dashboard/Purchase-Settings" },
+    { name: "Inventory Items", path: "/dashboard/Inventory-Items" },
+    { name: "Inventory Receiving Voucher", path: "/dashboard/Inventory-Inventory receiving voucher" },
+    { name: "Inventory Delivery Voucher", path: "/dashboard/Inventory-Inventory delivery voucher" },
+    { name: "Inventory Packing Lists", path: "/dashboard/Inventory-Packing lists" },
+    { name: "Inventory Internal Delivery Note", path: "/dashboard/Inventory-Internal delivery note" },
+    { name: "Inventory Loss & Adjustment", path: "/dashboard/Inventory-Loss & adjustment" },
+    { name: "Inventory Receiving-Exporting Return Order", path: "/dashboard/Inventory-Receiving-Exporting return order" },
+    { name: "Inventory Warehouses", path: "/dashboard/Inventory-Warehouses" },
+    { name: "Inventory History", path: "/dashboard/Inventory-Inventory history" },
+    { name: "Inventory Report", path: "/dashboard/Inventory-Report" },
+    { name: "Inventory Settings", path: "/dashboard/Inventory-Settings" },
     { name: "Tasks", path: "/dashboard/tasks" },
-    { name: "Reports", path: "/dashboard/reports" },
-    { name: "Settings", path: "/dashboard/setting" },
+    { name: "Assets", path: "/dashboard/Assets" },
+    { name: "Banner Manager", path: "/dashboard/Banner Manager" },
+    { name: "Leads", path: "/dashboard/Leads" },
+    { name: "Sales Invoices", path: "/dashboard/Sales-Invoices" },
+    { name: "Sales Order List", path: "/dashboard/Sales-Order list" },
+    { name: "Sales Store", path: "/dashboard/Sales-Store" },
+    { name: "Sales Payments", path: "/dashboard/Sales-Payments" },
+    { name: "Sales Items", path: "/dashboard/Sales-Items" },
+    { name: "Sales Contracts", path: "/dashboard/Sales-Contracts" },
+    { name: "Prospects Estimate List", path: "/dashboard/Prospects-Estimate List" },
+    { name: "Prospects Estimate Requests", path: "/dashboard/Prospects-Estimate Requests" },
+    { name: "Prospects Estimate Forms", path: "/dashboard/Prospects-Estimate Forms" },
+    { name: "Prospects Proposals", path: "/dashboard/Prospects-Proposals" },
+    { name: "Notes", path: "/dashboard/notes" },
     { name: "Messages", path: "/dashboard/messages" },
+    { name: "Team Members", path: "/dashboard/team-members" },
+    { name: "Time Cards", path: "/dashboard/time-cards" },
+    { name: "Leave", path: "/dashboard/leave" },
+    { name: "Timeline", path: "/dashboard/timeline" },
     { name: "Announcements", path: "/dashboard/announcements" },
-    { name: "Tickets", path: "/dashboard/tickets" },
-    { name: "Leads", path: "/dashboard/leads" },
-    { name: "Subscriptions", path: "/dashboard/subscriptions" },
-    { name: "Help & Support", path: "/dashboard/help" },
-    { name: "Profile", path: "/dashboard/profile" },
+    { name: "Tickets", path: "/dashboard/Tickets" },
+    { name: "Expenses", path: "/dashboard/Expenses" },
+    { name: "Reports", path: "/dashboard/Reports" },
+    { name: "Help", path: "/dashboard/help" },
+    { name: "Help Articles", path: "/dashboard/help/Articles" },
+    { name: "Help Categories", path: "/dashboard/help/Categories" },
+    { name: "Knowledge Base", path: "/dashboard/help/knowledge_base" },
+    { name: "Knowledge Base Articles", path: "/dashboard/help/knowledge_base_article" },
+    { name: "Knowledge Base Categories", path: "/dashboard/help/knowledge_base_category" },
+    { name: "Settings", path: "/dashboard/settings" }
   ];
 
   // Handle search input change
@@ -187,7 +300,8 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
     setTimeout(() => {
       if (query.length > 0) {
         const filtered = routes.filter((route) =>
-          route.name.toLowerCase().includes(query.toLowerCase())
+          route.name.toLowerCase().includes(query.toLowerCase()) ||
+          route.path.toLowerCase().includes(query.toLowerCase())
         );
         setFilteredRoutes(filtered);
       } else {
@@ -195,6 +309,13 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
       }
       setLoading(false); // Hide spinner after 800ms
     }, 800);
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && filteredRoutes.length > 0) {
+      handleSelectRoute(filteredRoutes[0].path);
+    }
   };
 
   // Handle clicking on a search result
@@ -240,6 +361,7 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={handleSearchChange}
+                  onKeyDown={handleKeyDown}
                   className="w-full outline-none text-gray-700 bg-transparent dark:text-white dark:bg-gray-700"
                 />
                 {loading && <RiLoader4Fill className="animate-spin text-gray-500 dark:text-gray-400 ml-2" size={22} />}
@@ -247,13 +369,13 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
 
               {/* Search Results Dropdown */}
               {filteredRoutes.length > 0 ? (
-                <ul className="absolute z-10 bg-white border border-gray-300 shadow-md rounded-md w-full mt-1 dark:bg-gray-700 dark:text-white">
+                <ul className="absolute z-10 bg-white border border-gray-300 shadow-md rounded-md w-full mt-1 max-h-60 overflow-y-auto dark:bg-gray-700 dark:text-white">
                   {filteredRoutes.map((route, index) => (
                     <li
                       key={index}
                       onClick={() => handleSelectRoute(route.path)}
                       className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
-                      {route.name}
+                      <div className="font-medium">{route.name}</div>
                     </li>
                   ))}
                 </ul>
@@ -309,8 +431,13 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
       </button>
           <button
             onClick={toggleMessages}
-            className="p-2 hover:bg-blue-200 rounded-full" title="Messages">
+            className="p-2 hover:bg-blue-200 rounded-full relative" title="Messages">
             <FiMail size={20} className="text-gray-700 dark:text-white" />
+            {unreadMessages > 0 && (
+              <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                {unreadMessages}
+              </span>
+            )}
           </button>
           {/* Profile Button */}
           <div
@@ -330,15 +457,39 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
           {messagesOpen && (
             <div
               ref={messagesRef}
-              className="absolute top-12 right-16  w-96 bg-white shadow-md rounded-md border border-gray-200 p-4 dark:bg-gray-700 dark:text-white">
-              <h4 className=" font-semibold">Messages</h4>
+              className="absolute top-12 right-16 w-96 bg-white shadow-md rounded-md border border-gray-200 p-4 dark:bg-gray-700 dark:text-white">
+              <h4 className="font-semibold">Messages</h4>
               <ul className="mt-2 space-y-2 border-t-[1px] border-gray-200 pt-2">
-                <li className="p-2  rounded-md">
-                </li>
+                {messages.length > 0 ? (
+                  messages.map((message) => (
+                    <li 
+                      key={message.id}
+                      className={`p-2 rounded-md ${message.status === 'unread' ? 'bg-blue-50 dark:bg-gray-600' : ''}`}
+                      onClick={() => markMessageAsRead(message.id)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{message.sender_name}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{message.subject}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                        {message.status === 'unread' && (
+                          <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">New</span>
+                        )}
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li className="p-2 rounded-md">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">No messages found.</span>
+                  </li>
+                )}
               </ul>
               <button
                 className="mt-4 text-sm text-blue-600 hover:underline"
-                onClick={() => console.log("View all messages")}
+                onClick={() => navigate('/dashboard/messages')}
               >
                 View All Messages
               </button>
@@ -348,21 +499,51 @@ const AdminHeader = ({ onColorChange, setDarkMode, toggleSidebar, isCollapsed })
           {alertsOpen && (
             <div
               ref={alertsRef}
-              className="absolute top-12 right-16  w-96 bg-white shadow-md rounded-md border border-gray-200 p-4 dark:bg-gray-700 dark:text-white">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h4 className=" font-semibold">Notification</h4>
-                <div style={{ fontSize: "14px", }} className=" cursor-pointer"><span className=" text-blue-600">Mark all as read</span>. <Link to='my-preferences'><span className=" text-blue-600">Settings</span></Link></div>
-              </div>
-              <ul className="mt-2 space-y-2 border-t-[1px] border-gray-200 pt-2 dark:bg-gray-700 dark:text-white">
-                <li className="p-2  rounded-md">
-                  <span className="text-sm ">
-                    No notification found.
+              className="absolute top-12 right-16 w-96 bg-white shadow-md rounded-md border border-gray-200 p-4 dark:bg-gray-700 dark:text-white">
+              <div className="flex justify-between items-center">
+                <h4 className="font-semibold">Notifications</h4>
+                <div className="text-sm">
+                  <span 
+                    className="text-blue-600 cursor-pointer hover:underline"
+                    onClick={markAllNotificationsAsRead}
+                  >
+                    Mark all as read
                   </span>
-                </li>
+                  <span className="mx-2">•</span>
+                  <Link to="/dashboard/notifications" className="text-blue-600 hover:underline">
+                    Settings
+                  </Link>
+                </div>
+              </div>
+              <ul className="mt-2 space-y-2 border-t-[1px] border-gray-200 pt-2">
+                {notifications.length > 0 ? (
+                  notifications.map((notification) => (
+                    <li 
+                      key={notification.id}
+                      className={`p-2 rounded-md ${!notification.read ? 'bg-blue-50 dark:bg-gray-600' : ''}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm">{notification.description}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                        {!notification.read && (
+                          <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">New</span>
+                        )}
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li className="p-2 rounded-md">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">No notifications found.</span>
+                  </li>
+                )}
               </ul>
               <button
-                className="mt-4  bg-gray-100 rounded-md hover:underline dark:bg-gray-700 dark:text-white"
-                onClick={() => console.log("View all messages")}
+                className="mt-4 text-sm text-blue-600 hover:underline"
+                onClick={() => navigate('/dashboard/notifications')}
               >
                 See All
               </button>
