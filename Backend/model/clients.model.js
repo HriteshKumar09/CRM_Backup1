@@ -284,7 +284,7 @@ export const softDeleteClientFromGroup = (clientId, groupId) => {
           return reject(new Error('Client is not in this group'));
         }
 
-        // Remove the group from the client’s groups
+        // Remove the group from the client's groups
         const updatedGroups = currentGroups.filter(group => group !== groupId.toString());
 
         updateClientGroups(clientId, updatedGroups)
@@ -292,5 +292,83 @@ export const softDeleteClientFromGroup = (clientId, groupId) => {
           .catch(err => reject(new Error(`Failed to update client groups: ${err.message}`)));
       })
       .catch(err => reject(new Error(`Failed to fetch client data: ${err.message}`)));
+  });
+};
+
+// Client Groups CRUD Operations
+
+// Create a new client group
+export const createClientGroup = (groupData) => {
+  return new Promise((resolve, reject) => {
+    const query = 'INSERT INTO _client_groups (title) VALUES (?)';
+    
+    db.query(query, [groupData.title], (err, result) => {
+      if (err) {
+        console.error('Error creating client group:', err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          groupId: result.insertId
+        });
+      }
+    });
+  });
+};
+
+// Get all client groups
+export const getAllClientGroups = () => {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM _client_groups WHERE deleted = 0 ORDER BY id DESC';
+    
+    db.query(query, (err, results) => {
+      if (err) {
+        console.error('Error fetching client groups:', err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          data: results
+        });
+      }
+    });
+  });
+};
+
+// Update a client group
+export const updateClientGroup = (groupId, groupData) => {
+  return new Promise((resolve, reject) => {
+    const query = 'UPDATE _client_groups SET title = ? WHERE id = ? AND deleted = 0';
+    
+    db.query(query, [groupData.title, groupId], (err, result) => {
+      if (err) {
+        console.error('Error updating client group:', err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          affectedRows: result.affectedRows
+        });
+      }
+    });
+  });
+};
+
+// Delete a client group (soft delete)
+export const deleteClientGroup = (groupId) => {
+  return new Promise((resolve, reject) => {
+    const query = 'UPDATE _client_groups SET deleted = 1 WHERE id = ?';
+    
+    db.query(query, [groupId], (err, result) => {
+      if (err) {
+        console.error('Error deleting client group:', err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          affectedRows: result.affectedRows
+        });
+      }
+    });
   });
 };

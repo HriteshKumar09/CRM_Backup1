@@ -36,6 +36,10 @@ import notificationsRoutes from './routes/notifications.route.js';
 import itemRoutes from './routes/item.route.js'; // ✅ Import the new route
 import blockedIPsRoutes from "./routes/blockedIPs.routes.js";
 import settingsRoutes from "./routes/settings.routes.js"; // Add settings routes
+import companyRoutes from "./routes/company.routes.js"; // Add company routes
+import paymentMethodsRoutes from "./routes/paymentMethods.route.js"; // Add payment methods routes
+import leaveTypesRoutes from "./routes/leaveTypes.route.js"; // Add leave types routes
+import expenseCategoriesRoutes from './routes/expenseCategories.route.js'; // Add expense categories routes
 
 const app = express(); 
 
@@ -100,6 +104,11 @@ app.use('/api/items', itemRoutes);  // All item-related and category-related rou
 app.use('/api/blacklist', blacklistRoutes);
 app.use('/api/blocked-ips', blockedIPsRoutes);
 app.use('/api/settings', settingsRoutes); // Add settings routes
+// Mount company routes under settings
+app.use('/api/settings/company', companyRoutes);
+app.use('/api/payment-methods', paymentMethodsRoutes); // Updated path for payment methods routes
+app.use('/api/leave-types', leaveTypesRoutes); // Add leave types routes
+app.use('/api', expenseCategoriesRoutes); // Add expense categories routes
 
 // ✅ Protected Routes (Example)
 app.get('/dashboard', authenticate, (req, res) => {
