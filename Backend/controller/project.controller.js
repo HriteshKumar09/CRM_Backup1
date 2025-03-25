@@ -4,7 +4,11 @@ import {
   getProjectById as getProjectByIdModel, 
   updateProject as updateProjectModel, 
   deleteProject as deleteProjectModel,
-  getProjectsByClientId as getProjectsByClientIdModel // New function 
+  getProjectsByClientId as getProjectsByClientIdModel, // New function 
+  createProjectStatus,
+  getAllProjectStatuses,
+  updateProjectStatus,
+  deleteProjectStatus
 } from '../model/project.model.js';
 import { createNotification } from '../controller/notificationsController.js'; // Assuming the notification function is imported
 
@@ -158,5 +162,114 @@ export const getProjectsByClientId = async (req, res) => {
   } catch (err) {
     console.error('Error fetching projects by client ID:', err);
     res.status(500).json({ success: false, message: 'Database error', error: err.message });
+  }
+};
+
+// Project Status Controllers
+
+// Create a new project status
+export const createProjectStatusController = async (req, res) => {
+  try {
+    const statusData = req.body;
+    
+    if (!statusData.title || !statusData.title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status title is required'
+      });
+    }
+
+    const result = await createProjectStatus(statusData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Project status created successfully',
+      statusId: result.statusId
+    });
+  } catch (error) {
+    console.error('Error in createProjectStatusController:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create project status'
+    });
+  }
+};
+
+// Get all project statuses
+export const getAllProjectStatusesController = async (req, res) => {
+  try {
+    const result = await getAllProjectStatuses();
+    
+    res.status(200).json({
+      success: true,
+      statuses: result.data
+    });
+  } catch (error) {
+    console.error('Error in getAllProjectStatusesController:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch project statuses'
+    });
+  }
+};
+
+// Update a project status
+export const updateProjectStatusController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const statusData = req.body;
+    
+    if (!statusData.title || !statusData.title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status title is required'
+      });
+    }
+
+    const result = await updateProjectStatus(id, statusData);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project status not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Project status updated successfully'
+    });
+  } catch (error) {
+    console.error('Error in updateProjectStatusController:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update project status'
+    });
+  }
+};
+
+// Delete a project status
+export const deleteProjectStatusController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await deleteProjectStatus(id);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project status not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Project status deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error in deleteProjectStatusController:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete project status'
+    });
   }
 };

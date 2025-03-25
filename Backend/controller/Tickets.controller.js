@@ -10,7 +10,10 @@ import {
     getCommentsByTicketId,
     createTemplate,
     getAllTemplates,
-    getAllTicketTypes
+    getAllTicketTypes,
+    createTicketType,
+    updateTicketType,
+    deleteTicketType
 } from "../model/Tickets.model.js"; // Import the model functions
 
 // ✅ **Create a new ticket**
@@ -217,16 +220,96 @@ export const getTemplatesController = async (req, res) => {
 };
 
 {/*Ticket Types*/}
-// ✅ **Get all ticket types**
+// Get all ticket types
 export const getTicketTypesController = async (req, res) => {
     try {
-        const result = await getAllTicketTypes(); // Fetch all ticket types via the model
+        const result = await getAllTicketTypes();
         res.status(200).json({ 
             success: true, 
-            ticketTypes: result.ticketTypes 
+            data: result.ticketTypes
         });
     } catch (error) {
         console.error("❌ Error fetching ticket types:", error);
-        res.status(500).json({ message: "Failed to fetch ticket types", error: error.message });
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to fetch ticket types", 
+            error: error.message 
+        });
+    }
+};
+
+// Create a new ticket type
+export const createTicketTypeController = async (req, res) => {
+    try {
+        const { title } = req.body;
+
+        if (!title) {
+            return res.status(400).json({
+                success: false,
+                message: "Title is required"
+            });
+        }
+
+        const result = await createTicketType({ title });
+        res.status(201).json({
+            success: true,
+            message: "Ticket type created successfully",
+            data: result.ticketType
+        });
+    } catch (error) {
+        console.error("❌ Error creating ticket type:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to create ticket type",
+            error: error.message
+        });
+    }
+};
+
+// Update a ticket type
+export const updateTicketTypeController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title } = req.body;
+
+        if (!title) {
+            return res.status(400).json({
+                success: false,
+                message: "Title is required"
+            });
+        }
+
+        const result = await updateTicketType(id, { title });
+        res.status(200).json({
+            success: true,
+            message: "Ticket type updated successfully",
+            data: result.ticketType
+        });
+    } catch (error) {
+        console.error("❌ Error updating ticket type:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update ticket type",
+            error: error.message
+        });
+    }
+};
+
+// Delete a ticket type
+export const deleteTicketTypeController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await deleteTicketType(id);
+        res.status(200).json({
+            success: true,
+            message: "Ticket type deleted successfully"
+        });
+    } catch (error) {
+        console.error("❌ Error deleting ticket type:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to delete ticket type",
+            error: error.message
+        });
     }
 };
