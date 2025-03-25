@@ -12,30 +12,38 @@ import {
     createTemplateController,
     getTemplatesController,
     getTicketTypesController,
+    createTicketTypeController,
+    updateTicketTypeController,
+    deleteTicketTypeController,
     getAllTicketsController
 } from "../controller/Tickets.controller.js";
+import { authenticate } from '../middleware/authenticate.js';
+import { authorizeRoles } from '../middleware/authorizeRoles.js';
 
 const router = express.Router();
 
 // Ticket Routes
-router.post("/tickets", createTicketController);               // Create a new ticket
+router.post("/tickets", createTicketController);               
 router.get("/tickets", getAllTicketsController);  
-router.get("/tickets/:ticketId", getTicketController);         // Get ticket by ID
-router.put("/tickets/:ticketId/status", updateTicketStatusController); // Update ticket status
-router.put("/tickets/:ticketId/assign", assignTicketController);  // Assign ticket to a user
-router.delete("/tickets/:ticketId", deleteTicketController);  // Soft delete ticket
-router.put("/tickets/:ticketId", editTicketController);       // Edit ticket details
-router.put("/tickets/:ticketId/close", closeTicketController); // Close the ticket
+router.get("/tickets/:ticketId", getTicketController);         
+router.put("/tickets/:ticketId/status", updateTicketStatusController); 
+router.put("/tickets/:ticketId/assign", assignTicketController);  
+router.delete("/tickets/:ticketId", deleteTicketController);  
+router.put("/tickets/:ticketId", editTicketController);       
+router.put("/tickets/:ticketId/close", closeTicketController); 
 
 // Ticket Comments Routes
-router.post("/tickets/:ticketId/comments", addCommentController);   // Add comment to a ticket
-router.get("/tickets/:ticketId/comments", getCommentsController);   // Get comments for a ticket
+router.post("/tickets/:ticketId/comments", addCommentController);   
+router.get("/tickets/:ticketId/comments", getCommentsController);   
 
 // Ticket Templates Routes
-router.post("/ticket-templates", createTemplateController); // Create a new template
-router.get("/ticket-templates", getTemplatesController);    // Get all ticket templates
+router.post("/ticket-templates", createTemplateController); 
+router.get("/ticket-templates", getTemplatesController);    
 
 // Ticket Types Routes
-router.get("/ticket-types", getTicketTypesController);      // Get all ticket types
+router.get("/ticket-types", authenticate, getTicketTypesController);            // Get all ticket types
+router.post("/ticket-types", authenticate, createTicketTypeController);       // Create new ticket type
+router.put("/ticket-types/:id", authenticate, updateTicketTypeController);     // Update ticket type
+router.delete("/ticket-types/:id", authenticate, deleteTicketTypeController);  // Delete ticket type
 
 export default router;
