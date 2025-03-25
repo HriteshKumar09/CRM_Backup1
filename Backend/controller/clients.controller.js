@@ -1,4 +1,4 @@
-import { createClient, getClients, getClientById, updateClient, deleteClient, addClientToGroup, removeClientFromGroup, moveClientToAnotherGroup } from "../model/clients.model.js";
+import { createClient, getClients, getClientById, updateClient, deleteClient, addClientToGroup, removeClientFromGroup, moveClientToAnotherGroup, createClientGroup, getAllClientGroups, updateClientGroup, deleteClientGroup } from "../model/clients.model.js";
 
 // Helper function to validate request data
 const validateRequestData = (data) => {
@@ -157,9 +157,6 @@ export const deleteClientController = async (req, res) => {
   }
 };
 
-
-
-
 // Controller to handle adding a client to a group
 export const addClientToGroupController = async (req, res) => {
   try {
@@ -232,6 +229,115 @@ export const softDeleteClientFromGroupController = async (req, res) => {
     res.status(500).json({
       success: false,
       message: `Error: ${err.message}`,
+    });
+  }
+};
+
+// Client Groups Controllers
+
+// Create a new client group
+export const createClientGroupController = async (req, res) => {
+  try {
+    const groupData = req.body;
+    
+    if (!groupData.title || !groupData.title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Group title is required'
+      });
+    }
+
+    const result = await createClientGroup(groupData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Client group created successfully',
+      groupId: result.groupId
+    });
+  } catch (error) {
+    console.error('Error in createClientGroupController:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create client group'
+    });
+  }
+};
+
+// Get all client groups
+export const getAllClientGroupsController = async (req, res) => {
+  try {
+    const result = await getAllClientGroups();
+    
+    res.status(200).json({
+      success: true,
+      groups: result.data
+    });
+  } catch (error) {
+    console.error('Error in getAllClientGroupsController:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch client groups'
+    });
+  }
+};
+
+// Update a client group
+export const updateClientGroupController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const groupData = req.body;
+    
+    if (!groupData.title || !groupData.title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Group title is required'
+      });
+    }
+
+    const result = await updateClientGroup(id, groupData);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client group not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Client group updated successfully'
+    });
+  } catch (error) {
+    console.error('Error in updateClientGroupController:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update client group'
+    });
+  }
+};
+
+// Delete a client group
+export const deleteClientGroupController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await deleteClientGroup(id);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client group not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Client group deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error in deleteClientGroupController:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete client group'
     });
   }
 };
