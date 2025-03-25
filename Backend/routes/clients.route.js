@@ -8,11 +8,21 @@ import {
   addClientToGroupController,
   removeClientFromGroupController,
   moveClientToAnotherGroupController,
-  softDeleteClientFromGroupController
+  softDeleteClientFromGroupController,
+  createClientGroupController,
+  getAllClientGroupsController,
+  updateClientGroupController,
+  deleteClientGroupController
 } from '../controller/clients.controller.js';
 import { getProjectsByClientId } from '../controller/project.controller.js';
 
 const router = express.Router();
+
+// Client Groups Routes
+router.post('/client-groups', createClientGroupController);
+router.get('/client-groups', getAllClientGroupsController);
+router.put('/client-groups/:id', updateClientGroupController);
+router.delete('/client-groups/:id', deleteClientGroupController);
 
 // Client Group Management Routes
 // Make sure these routes come before the more generic /clients/:id route
