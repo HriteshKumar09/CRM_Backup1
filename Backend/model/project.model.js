@@ -143,3 +143,92 @@ export const getProjectsByClientId = (clientId, limit = 10, offset = 0) => {
     });
   });
 };
+
+// Project Status CRUD Operations
+
+// Create a new project status
+export const createProjectStatus = (statusData) => {
+  return new Promise((resolve, reject) => {
+    const query = 'INSERT INTO _project_status (title, title_language_key, key_name, icon) VALUES (?, ?, ?, ?)';
+    
+    db.query(query, [
+      statusData.title,
+      statusData.title_language_key || statusData.title.toLowerCase(),
+      statusData.key_name || statusData.title.toLowerCase(),
+      statusData.icon || 'grid'
+    ], (err, result) => {
+      if (err) {
+        console.error('Error creating project status:', err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          statusId: result.insertId
+        });
+      }
+    });
+  });
+};
+
+// Get all project statuses
+export const getAllProjectStatuses = () => {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM _project_status WHERE deleted = 0 ORDER BY id DESC';
+    
+    db.query(query, (err, results) => {
+      if (err) {
+        console.error('Error fetching project statuses:', err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          data: results
+        });
+      }
+    });
+  });
+};
+
+// Update a project status
+export const updateProjectStatus = (statusId, statusData) => {
+  return new Promise((resolve, reject) => {
+    const query = 'UPDATE _project_status SET title = ?, title_language_key = ?, key_name = ?, icon = ? WHERE id = ? AND deleted = 0';
+    
+    db.query(query, [
+      statusData.title,
+      statusData.title_language_key || statusData.title.toLowerCase(),
+      statusData.key_name || statusData.title.toLowerCase(),
+      statusData.icon || 'grid',
+      statusId
+    ], (err, result) => {
+      if (err) {
+        console.error('Error updating project status:', err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          affectedRows: result.affectedRows
+        });
+      }
+    });
+  });
+};
+
+// Delete a project status (soft delete)
+export const deleteProjectStatus = (statusId) => {
+  return new Promise((resolve, reject) => {
+    const query = 'UPDATE _project_status SET deleted = 1 WHERE id = ?';
+    
+    db.query(query, [statusId], (err, result) => {
+      if (err) {
+        console.error('Error deleting project status:', err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          affectedRows: result.affectedRows
+        });
+      }
+    });
+  });
+};
