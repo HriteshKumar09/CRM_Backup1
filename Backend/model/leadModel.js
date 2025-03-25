@@ -126,3 +126,155 @@ export const deleteLead = (leadId) => {
     });
   });
 };
+
+// Lead Source CRUD Operations
+export const createLeadSource = (sourceData) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      INSERT INTO _lead_source (title, sort, deleted)
+      VALUES (?, (SELECT COALESCE(MAX(sort), 0) + 1 FROM _lead_source ls), 0)
+    `;
+
+    db.query(query, [sourceData.title], (err, result) => {
+      if (err) {
+        console.error("Error creating lead source:", err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          sourceId: result.insertId
+        });
+      }
+    });
+  });
+};
+
+export const getAllLeadSources = () => {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM _lead_source WHERE deleted = 0 ORDER BY sort ASC';
+
+    db.query(query, (err, result) => {
+      if (err) {
+        console.error("Error fetching lead sources:", err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          data: result
+        });
+      }
+    });
+  });
+};
+
+export const updateLeadSource = (sourceId, sourceData) => {
+  return new Promise((resolve, reject) => {
+    const query = 'UPDATE _lead_source SET title = ? WHERE id = ? AND deleted = 0';
+
+    db.query(query, [sourceData.title, sourceId], (err, result) => {
+      if (err) {
+        console.error("Error updating lead source:", err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          affectedRows: result.affectedRows
+        });
+      }
+    });
+  });
+};
+
+export const deleteLeadSource = (sourceId) => {
+  return new Promise((resolve, reject) => {
+    const query = 'UPDATE _lead_source SET deleted = 1 WHERE id = ?';
+
+    db.query(query, [sourceId], (err, result) => {
+      if (err) {
+        console.error("Error deleting lead source:", err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          affectedRows: result.affectedRows
+        });
+      }
+    });
+  });
+};
+
+// Lead Status CRUD Operations
+export const createLeadStatus = (statusData) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      INSERT INTO _lead_status (title, color, sort, deleted)
+      VALUES (?, ?, (SELECT COALESCE(MAX(sort), 0) + 1 FROM _lead_status ls), 0)
+    `;
+
+    db.query(query, [statusData.title, statusData.color], (err, result) => {
+      if (err) {
+        console.error("Error creating lead status:", err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          statusId: result.insertId
+        });
+      }
+    });
+  });
+};
+
+export const getAllLeadStatuses = () => {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM _lead_status WHERE deleted = 0 ORDER BY sort ASC';
+
+    db.query(query, (err, result) => {
+      if (err) {
+        console.error("Error fetching lead statuses:", err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          data: result
+        });
+      }
+    });
+  });
+};
+
+export const updateLeadStatus = (statusId, statusData) => {
+  return new Promise((resolve, reject) => {
+    const query = 'UPDATE _lead_status SET title = ?, color = ? WHERE id = ? AND deleted = 0';
+
+    db.query(query, [statusData.title, statusData.color, statusId], (err, result) => {
+      if (err) {
+        console.error("Error updating lead status:", err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          affectedRows: result.affectedRows
+        });
+      }
+    });
+  });
+};
+
+export const deleteLeadStatus = (statusId) => {
+  return new Promise((resolve, reject) => {
+    const query = 'UPDATE _lead_status SET deleted = 1 WHERE id = ?';
+
+    db.query(query, [statusId], (err, result) => {
+      if (err) {
+        console.error("Error deleting lead status:", err);
+        reject(err);
+      } else {
+        resolve({
+          success: true,
+          affectedRows: result.affectedRows
+        });
+      }
+    });
+  });
+};
