@@ -13,10 +13,18 @@ export const createItemCategoryController = async (req, res) => {
     try {
         const categoryData = req.body;
         const result = await createItemCategory(categoryData);
-        res.status(201).json({ message: "Item category created successfully", data: result });
+        res.status(201).json({ 
+            success: true,
+            message: "Item category created successfully", 
+            data: result 
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Failed to create item category", error: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: "Failed to create item category", 
+            error: error.message 
+        });
     }
 };
 
@@ -25,13 +33,18 @@ export const getAllItemCategoriesController = async (req, res) => {
     try {
         const result = await getAllItemCategories();
         console.log("Fetched categories:", result);
-        if (!result || result.length === 0) {
-            return res.status(404).json({ message: "No item categories found" });
-        }
-        res.status(200).json({ message: "Item categories fetched successfully", data: result });
+        res.status(200).json({ 
+            success: true,
+            message: result.length ? "Item categories fetched successfully" : "No item categories found", 
+            data: result || [] 
+        });
     } catch (error) {
         console.error("Error in getAllItemCategoriesController:", error);
-        res.status(500).json({ message: "Failed to fetch item categories", error: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: "Failed to fetch item categories", 
+            error: error.message 
+        });
     }
 };
 // Get Item Category by ID
