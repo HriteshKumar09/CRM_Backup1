@@ -79,9 +79,12 @@ export const createRequest = async (req, res) => {
 // Get All Requests
 export const getRequests = async (req, res) => {
     try {
+        console.log("Fetching estimate requests...");
         const requests = await getAllEstimateRequests(req.query);
+        console.log("Fetched requests:", requests);
         res.json({ success: true, data: requests });
     } catch (err) {
+        console.error("❌ Error in getRequests controller:", err);
         res.status(500).json({ success: false, message: err.message });
     }
 };

@@ -114,68 +114,37 @@ const Events = () => {
   };
 
   // Handle create event
-  const handleCreateEvent = async (e) => {
-    e.preventDefault(); // Prevent default form submission
-  
-    // Validate required fields
-    if (!newEvent.title || !newEvent.start_date) {
-      toast.error("Title and Start Date are required!");
-      return;
-    }
-  
+  const handleCreateEvent = async (eventData) => {
     try {
-      // Format the event data for the API
-      const eventData = {
-        title: newEvent.title,
-        description: newEvent.description,
-        start_date: newEvent.start_date,
-        end_date: newEvent.end_date || null,
-        start_time: newEvent.start_time || "00:00:00",
-        end_time: newEvent.end_time || "00:00:00",
-        created_by: 1, // Replace with the actual user ID
-        location: newEvent.location,
-        client_id: newEvent.client_id || null,
-        share_with: newEvent.share_with,
-        color: newEvent.color,
-      };
-  
-      // Log the data being sent to the API
-      console.log("Creating event with data:", eventData);
-  
-      // Send the request to the API
       const response = await api.post("/events", eventData);
-  
-      // Log the response from the API
-      console.log("API Response:", response.data);
-  
-      // Format the event for FullCalendar
-      const formattedEvent = {
-        id: response.data.id,
-        title: eventData.title,
-        start: `${eventData.start_date}T${eventData.start_time}`,
-        end: eventData.end_date ? `${eventData.end_date}T${eventData.end_time}` : null,
-        backgroundColor: eventData.color,
-        extendedProps: {
-          description: eventData.description,
-          client_id: eventData.client_id,
-          share_with: eventData.share_with,
-          location: eventData.location,
-        },
-      };
-  
-      // Update the events state
-      setEvents([...events, formattedEvent]);
-  
-      // Show success message
-      toast.success("Event added successfully!");
-  
-      // Close the modal and reset the form
-      setShowModal(false);
-      resetForm();
+      
+      if (response.data.success) {
+        // Format the event for FullCalendar
+        const formattedEvent = {
+          id: response.data.data.id,
+          title: eventData.title,
+          start: `${eventData.start_date}T${eventData.start_time || "00:00:00"}`,
+          end: eventData.end_date ? `${eventData.end_date}T${eventData.end_time || "00:00:00"}` : null,
+          backgroundColor: eventData.color,
+          extendedProps: {
+            description: eventData.description,
+            client_id: eventData.client_id,
+            share_with: eventData.share_with,
+            location: eventData.location,
+          },
+        };
+
+        // Update the events state
+        setEvents([...events, formattedEvent]);
+        toast.success("Event created successfully!");
+        setShowModal(false);
+        resetForm();
+      } else {
+        toast.error(response.data.message || "Failed to create event");
+      }
     } catch (error) {
-      // Log the error and show an error message
       console.error("Error creating event:", error);
-      toast.error("Failed to add event");
+      toast.error(error.response?.data?.message || "Failed to create event");
     }
   };
 
@@ -229,70 +198,40 @@ const Events = () => {
   };
 
   // Handle update event
-  const handleUpdateEvent = async (e) => {
-    e.preventDefault(); // Prevent default form submission
-  
-    // Validate required fields
-    if (!newEvent.title || !newEvent.start_date) {
-      toast.error("Title and Start Date are required!");
-      return;
-    }
-  
+  const handleUpdateEvent = async (eventData) => {
     try {
-      // Format the event data for the API
-      const eventData = {
-        title: newEvent.title,
-        description: newEvent.description,
-        start_date: newEvent.start_date,
-        end_date: newEvent.end_date || null,
-        start_time: newEvent.start_time || "00:00:00",
-        end_time: newEvent.end_time || "00:00:00",
-        created_by: 1, // Replace with the actual user ID
-        location: newEvent.location,
-        client_id: newEvent.client_id || null,
-        share_with: newEvent.share_with,
-        color: newEvent.color,
-      };
-  
-      // Log the data being sent to the API
-      console.log("Updating event with data:", eventData);
-  
-      // Send the request to the API
       const response = await api.put(`/events/${eventToEdit.id}`, eventData);
-  
-      // Log the response from the API
-      console.log("API Response:", response.data);
-  
-      // Format the updated event for FullCalendar
-      const updatedEvent = {
-        id: eventToEdit.id,
-        title: eventData.title,
-        start: `${eventData.start_date}T${eventData.start_time}`,
-        end: eventData.end_date ? `${eventData.end_date}T${eventData.end_time}` : null,
-        backgroundColor: eventData.color,
-        extendedProps: {
-          description: eventData.description,
-          client_id: eventData.client_id,
-          share_with: eventData.share_with,
-          location: eventData.location,
-        },
-      };
-  
-      // Update the events state
-      setEvents(events.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)));
-  
-      // Show success message
-      toast.success("Event updated successfully!");
-  
-      // Close the modal and reset the form
-      setShowModal(false);
-      resetForm();
+      
+      if (response.data.success) {
+        // Format the updated event for FullCalendar
+        const updatedEvent = {
+          id: eventToEdit.id,
+          title: eventData.title,
+          start: `${eventData.start_date}T${eventData.start_time || "00:00:00"}`,
+          end: eventData.end_date ? `${eventData.end_date}T${eventData.end_time || "00:00:00"}` : null,
+          backgroundColor: eventData.color,
+          extendedProps: {
+            description: eventData.description,
+            client_id: eventData.client_id,
+            share_with: eventData.share_with,
+            location: eventData.location,
+          },
+        };
+
+        // Update the events state
+        setEvents(events.map((event) => (event.id === updatedEvent.id ? updatedEvent : event)));
+        toast.success("Event updated successfully!");
+        setShowModal(false);
+        resetForm();
+      } else {
+        toast.error(response.data.message || "Failed to update event");
+      }
     } catch (error) {
-      // Log the error and show an error message
       console.error("Error updating event:", error);
-      toast.error("Failed to update event");
+      toast.error(error.response?.data?.message || "Failed to update event");
     }
   };
+
   // Reset form fields
   const resetForm = () => {
     setNewEvent({
@@ -465,6 +404,7 @@ const Events = () => {
         onClose={() => setIsManageOpen(false)}
         labelsList={labelsList}
         setLabelsList={setLabelsList}
+        context="event"
       />
     </div>
   );

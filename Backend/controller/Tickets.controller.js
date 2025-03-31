@@ -13,7 +13,8 @@ import {
     getAllTicketTypes,
     createTicketType,
     updateTicketType,
-    deleteTicketType
+    deleteTicketType,
+    getProjectsByClientId
 } from "../model/Tickets.model.js"; // Import the model functions
 
 // ✅ **Create a new ticket**
@@ -310,6 +311,33 @@ export const deleteTicketTypeController = async (req, res) => {
             success: false,
             message: "Failed to delete ticket type",
             error: error.message
+        });
+    }
+};
+
+// Add new controller for getting projects by client ID
+export const getProjectsByClientIdController = async (req, res) => {
+    try {
+        const { clientId } = req.params;
+
+        if (!clientId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Client ID is required" 
+            });
+        }
+
+        const result = await getProjectsByClientId(clientId);
+        return res.status(200).json({ 
+            success: true, 
+            projects: result.projects 
+        });
+    } catch (error) {
+        console.error("❌ Error fetching projects:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to fetch projects", 
+            error: error.message 
         });
     }
 };

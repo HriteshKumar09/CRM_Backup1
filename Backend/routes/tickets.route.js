@@ -15,7 +15,8 @@ import {
     createTicketTypeController,
     updateTicketTypeController,
     deleteTicketTypeController,
-    getAllTicketsController
+    getAllTicketsController,
+    getProjectsByClientIdController
 } from "../controller/Tickets.controller.js";
 import { authenticate } from '../middleware/authenticate.js';
 import { authorizeRoles } from '../middleware/authorizeRoles.js';
@@ -45,5 +46,8 @@ router.get("/ticket-types", authenticate, getTicketTypesController);            
 router.post("/ticket-types", authenticate, createTicketTypeController);       // Create new ticket type
 router.put("/ticket-types/:id", authenticate, updateTicketTypeController);     // Update ticket type
 router.delete("/ticket-types/:id", authenticate, deleteTicketTypeController);  // Delete ticket type
+
+// Add new route for getting projects by client ID
+router.get("/client/:clientId/projects", getProjectsByClientIdController);
 
 export default router;

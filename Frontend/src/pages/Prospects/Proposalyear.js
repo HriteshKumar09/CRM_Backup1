@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DropdownButton from "../../extra/DropdownButton ";
 import ExportSearchControls from "../../extra/ExportSearchControls";
 import Pagination from "../../extra/Pagination";
-import FormDialog from "../../extra/FormDialog"; // ✅ Import FormDialog
 import { LuColumns2 } from "react-icons/lu";
+import FormDialog from "../../extra/FormDialog";
 import Select from "react-select";
 import { FiEdit } from "react-icons/fi";
-import { SlClose } from "react-icons/sl";
-import api from "../../Services/api"; // Import API instance
+import api from "../../Services/api";
+import { toast } from "react-toastify";
 
 const ProposalYear = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,6 +44,8 @@ const ProposalYear = () => {
     { key: "status", label: "Status" },
     { key: "action", label: "Action" },
   ];
+
+  const navigate = useNavigate();
 
   // ✅ Fetch Yearly Proposals from API
   useEffect(() => {
@@ -117,6 +120,10 @@ const ProposalYear = () => {
     { name: "status", label: "Status", type: "text" },
   ];
 
+  const handleViewProposal = (id) => {
+    navigate(`/dashboard/Prospects-Proposals/view/${id}`);
+  };
+
   return (
     <div>
       {/* Header Section */}
@@ -163,7 +170,14 @@ const ProposalYear = () => {
             {currentProposals.length > 0 ? (
               currentProposals.map((proposal) => (
                 <tr key={proposal.id} className="border">
-                  {visibleColumns.proposal && <td className="px-4 py-2">{proposal.id}</td>}
+                  {visibleColumns.proposal && <td className="px-4 py-2">
+                    <button
+                      onClick={() => handleViewProposal(proposal.id)}
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      {proposal.id}
+                    </button>
+                  </td>}
                   {visibleColumns.client && <td className="px-4 py-2">{proposal.client}</td>}
                   {visibleColumns.proposalDate && <td className="px-4 py-2">{proposal.proposalDate}</td>}
                   {visibleColumns.validuntil && <td className="px-4 py-2">{proposal.validUntil}</td>}

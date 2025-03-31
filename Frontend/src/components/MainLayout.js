@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import {jwtDecode} from "jwt-decode"; // Import jwtDecode directly
+import React, { useEffect, useState } from "react";
+import {jwtDecode} from "jwt-decode";
 import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Dashboard from "../pages/Dashboard";
@@ -16,28 +16,8 @@ import BannerManager from "../pages/Banner-Manager";
 import Subscriptions from "../pages/Subscriptions";
 import AdminHeader from "./AdminHeader";
 import Notes from "../pages/Notes";
-import Messages from "../pages/Messages";
-// import Expenses from "../pages/Expenses";
 import Reports from "../pages/Reports";
 import Setting from "../pages/Settings/Settings";
-import GeneralSettings from "../pages/Settings/components/AppSettings/GeneralSettings";
-import LocalizationSettings from "../pages/Settings/components/AppSettings/LocalizationSettings";
-import EmailSettings from "../pages/Settings/components/AppSettings/EmailSettings";
-import EmailTemplates from "../pages/Settings/components/AppSettings/EmailTemplates";
-import ModulesSettings from "../pages/Settings/components/AppSettings/ModulesSettings";
-import LeftMenuSettings from "../pages/Settings/components/AppSettings/LeftMenuSettings";
-import NotificationSettings from "../pages/Settings/components/AppSettings/NotificationSettings";
-import IntegrationSettings from "../pages/Settings/components/AppSettings/IntegrationSettings";
-import CronJobSettings from "../pages/Settings/components/AppSettings/CronJobSettings";
-import UpdateSettings from "../pages/Settings/components/AppSettings/UpdateSettings";
-import RoleSettings from "../pages/Settings/components/AccessPermission/RoleSettings";
-import UserRoleSettings from "../pages/Settings/components/AccessPermission/UserRoleSettings";
-import TeamSettings from "../pages/Settings/components/AccessPermission/TeamSettings";
-import IPRestrictionSettings from "../pages/Settings/components/AccessPermission/IPRestrictionSettings";
-import ClientPermissionSettings from "../pages/Settings/components/ClientPortal/ClientPermissionSettings";
-import ClientDashboardSettings from "../pages/Settings/components/ClientPortal/DashboardSettings";
-import ClientMenuSettings from "../pages/Settings/components/ClientPortal/MenuSettings";
-import ProjectSettings from "../pages/Settings/components/ClientPortal/ProjectSettings";
 import GeneralInfo from "../pages/Tabs/GeneralInfo";
 import SocialLinks from "../pages/Tabs/SocialLinks";
 import JobInfo from "../pages/Tabs/JobInfo";
@@ -46,14 +26,17 @@ import MyPreferences from "../pages/Tabs/MyPreferences";
 import Files from "../pages/Tabs/Files";
 import ProfilePage from "../pages/Profilepage";
 import TeamProfilePage from "../pages/Tabs/TeamMembersProfile";
-import ClientPage from "../pages/Clients/ClientPage"; // ✅ Correct import
-import ContactPage from "../pages/Clients/ContactPage"; // ✅ Correct import
+import ClientPage from "../pages/Clients/ClientPage";
+import ContactPage from "../pages/Clients/ContactPage";
 import Kanbanpage from "../pages/Task/Kanbanpage";
 import Ganttpage from "../pages/Task/Ganttpage";
+import ProposalView from "../pages/Prospects/ProposalView";
+import MessageModule from "../pages/Messages";
 
 //Riseguard
 import RiseguardDashboard from "../pages/Riseguard/Dashboard";
 import RiseguardSetting from "../pages/Riseguard/Settings"
+
 //Marketing Automation
 import MarketingDashboard from "../pages/Marketing Automation/Dashboard";
 import MarketingSegments from "../pages/Marketing Automation/Segments";
@@ -64,6 +47,7 @@ import MarketingPoints from "../pages/Marketing Automation/Points";
 import MarketingStages from "../pages/Marketing Automation/Stages";
 import MarketingReports from "../pages/Marketing Automation/Reports";
 import MarketingSettings from "../pages/Marketing Automation/Settings";
+
 //Accounting
 import AccountingDashboard from "../pages/Accounting/Dashboard";
 import AccountingBanking from "../pages/Accounting/Banking";
@@ -71,20 +55,24 @@ import AccountingTransactions from "../pages/Accounting/Transactions";
 import AccountingJournalEntry from "../pages/Accounting/Journal-Entry";
 import AccountingTransfer from "../pages/Accounting/Transactions";
 import AccountingChart from "../pages/Accounting/Chart-of-Accounts";
+
 //Sales Agent
 import SalesAgentDashboard from "../pages/Sales Agent/Dashboard";
 import SalesAgentManagement from "../pages/Sales Agent/Management";
 import SalesAgentPrograms from "../pages/Sales Agent/Programs";
 import SalesAgentOrders from "../pages/Sales Agent/Orders";
 import SalesAgentSettings from "../pages/Sales Agent/Settings";
+
 //Recruitments
 import RecruitmentsCirculars from "../pages/Recruitments/Circulars";
 import RecruitmentsCandidates from "../pages/Recruitments/Candidates";
+
 //Flexiblebackup
 import FlexiblebackupStoredBackups from "../pages/Flexiblebackup/Stored-Backups";
 import FlexiblebackupUpcomingBackup from "../pages/Flexiblebackup/Upcoming-Backup";
 import FlexiblebackupSettings from "../pages/Flexiblebackup/Settings";
 import FlexiblebackupBackup from "../pages/Flexiblebackup/Backup";
+
 //Hr payroll
 import HrpayrollEmployees from "../pages/Hr payroll/Employees";
 import HrpayrollAttendance from "../pages/Hr payroll/Attendance";
@@ -97,6 +85,7 @@ import HrpayrollPaysliptemplates from "../pages/Hr payroll/Payslip-templates";
 import HrpayrollIncometaxes from "../pages/Hr payroll/Income-taxes";
 import HrpayrollReports from "../pages/Hr payroll/Reports";
 import HrpayrollSettings from "../pages/Hr payroll/Settings";
+
 //Purchase
 import PurchaseItems from "../pages/Purchase/Items";
 import PurchaseVendors from "../pages/Purchase/Vendors";
@@ -106,6 +95,7 @@ import PurchaseQuotations from "../pages/Purchase/Quotations";
 import PurchasePurchaseOrders from "../pages/Purchase/Purchase-Orders";
 import PurchaseInvoices from "../pages/Purchase/Invoices";
 import PurchaseSettings from "../pages/Purchase/Settings";
+
 //Inventory
 import InventoryItems from "../pages/Inventory/Items";
 import InventoryInventoryreceivingvoucher from "../pages/Inventory/Inventory-receiving-voucher";
@@ -118,6 +108,7 @@ import InventoryWarehouses from "../pages/Inventory/Warehouses";
 import InventoryInventoryhistory from "../pages/Inventory/Inventory-history";
 import InventoryReport from "../pages/Inventory/Report";
 import InventorySettings from "../pages/Inventory/Settings";
+
 //Manufacturing
 import ManufacturingDashboard from "../pages/Manufacturing/Dashboard";
 import ManufacturingProducts from "../pages/Manufacturing//Products";
@@ -128,6 +119,7 @@ import ManufacturingWorkcenters from "../pages/Manufacturing/Work-centers";
 import ManufacturingManufacturingorders from "../pages/Manufacturing/Manufacturing-orders";
 import ManufacturingWorkorders from "../pages/Manufacturing/Work-orders";
 import ManufacturingSettings from "../pages/Manufacturing/Settings";
+
 //Sales
 import SalesInvoices from "../pages/Sales/Invoices";
 import SalesOrderlist from "../pages/Sales/Order-list";
@@ -135,6 +127,7 @@ import SalesStore from "../pages/Sales/Store";
 import SalesPayments from "../pages/Sales/Payments";
 import SalesItems from "../pages/Sales/Items";
 import SalesContracts from "../pages/Sales/Contracts";
+
 //Prospects
 import ProspectsEstimateList from "../pages/Prospects/Estimate-List";
 import Estimatelistyear from "../pages/Prospects/Estimate-list-year";
@@ -147,13 +140,14 @@ import EditEstimateForm from "../pages/Prospects/EditEstimateForm";
 import ProspectsProposals from "../pages/Prospects/Proposals";
 import ProposalsMonth from "../pages/Prospects/ProposalMonth";
 import ProposalsYear from "../pages/Prospects/Proposalyear"
-import RequestEstimateForm from "../pages/Prospects/RequestEstimateForm";
 import ViewEstimateRequest from "../pages/Prospects/ViewEstimateRequest";
+
 //Help & Support
 import Help from "../pages/Help/Help";
 import HelpArticles from "../pages/Help/Articles";
 import HelpCategories from "../pages/Help/Categories";
 import HelpKnowledgebase from "../pages/Help/Knowledge-base";
+
 //Team
 import TeamMembers from "../pages/Team/TeamMembers";
 import TimeCards from "../pages/Team/TimeCards";
@@ -168,9 +162,7 @@ import SummaryDetails from "../pages/Team/Summary-Details";
 import AllApplication from "../pages/Team/All-Application";
 import LeaveSummary from "../pages/Team/Leave-Summary";
 import Addannouncement from "../pages/Team/Addannouncement";
-import MessageModule from "../pages/Messages";
 import ProfileTimeCards from "../pages/Team/ProfileTimeCards";
-import { Ticket } from "lucide-react";
 import Tickets from "../pages/Tickets/Tickets";
 
 //project Tabs
@@ -194,6 +186,7 @@ import Contracts from "../pages/projectTabs/Contracts";
 import Invoice from "../pages/projectTabs/Invoice";
 import ProjectPayments from "../pages/projectTabs/Payments";
 import Feedback from "../pages/projectTabs/Feed-back";
+
 //Clients Tabs
 import ClientDetail from "../pages/ClientTabs/ClientDetail";
 import ClientContracts from "../pages/ClientTabs/Client-Contracts";
@@ -214,7 +207,6 @@ import ClientTasks from "../pages/ClientTabs/Client-Tasks";
 import ClientTickets from "../pages/ClientTabs/Client-Tickets";
 
 //Expenses
-// import Expenses from "../pages/Expenses";
 import ExpensesMonth from "../pages/Expenses/ExpensesMonth";
 import ExpensesYear from "../pages/Expenses/Expenses-Year";
 import ExpensesRecurring from "../pages/Expenses/Expenses-Recurring";
@@ -225,7 +217,7 @@ import { useTheme } from "../contexts/ThemeContext";
 
 const MainLayout = () => {
   const [sidebarColor, setSidebarColor] = useState("");
-  const { darkMode } = useTheme();
+  const { darkMode, toggleDarkMode } = useTheme();
 
   // Load sidebar state from localStorage (default: false if not found)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -251,18 +243,10 @@ const MainLayout = () => {
     return allowedRoles.includes(roleId);
   };
 
-  // Save `isSidebarCollapsed` to `localStorage` whenever it changes
-  useEffect(() => {
-    localStorage.setItem("isSidebarCollapsed", JSON.stringify(isSidebarCollapsed));
-  }, [isSidebarCollapsed]);
-
-  // Toggle sidebar state and update localStorage
+  // Function to toggle sidebar
   const toggleSidebar = () => {
-    setIsSidebarCollapsed((prevState) => {
-      const newState = !prevState;
-      localStorage.setItem("isSidebarCollapsed", JSON.stringify(newState));
-      return newState;
-    });
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+    localStorage.setItem("isSidebarCollapsed", JSON.stringify(!isSidebarCollapsed));
   };
 
   const [loading, setLoading] = useState(true);
@@ -297,7 +281,7 @@ const MainLayout = () => {
               {/* Default route for /dashboard */}
               <Route path="/" element={<Dashboard />} />
 
-              {/* Settings route */}
+              {/* Settings routes */}
               <Route path="settings/*" element={<Setting />} />
 
               {/* Other routes */}
@@ -451,11 +435,23 @@ const MainLayout = () => {
 
               {hasAccess([27]) && (
               <>
-              <Route path="Prospects-Estimate List" element={<ProspectsEstimateList />} />
-              <Route path="Prospects-Estimate Requests" element={<ProspectsEstimateRequests />} />
-              <Route path="Prospects-Estimate Forms" element={<ProspectsEstimateForms />} />
-              <Route path="Prospects-Proposals" element={<ProspectsProposals />} />
+              <Route path="Prospects-Estimate List" element={<ProspectsEstimateList />} >
+                <Route path="index" element={<Estimatelistyear />} />
+                <Route index element={<Estimatelistmonth />} />
+              </Route>
 
+              <Route path="Estimate-List/Views/:id" element={<Estimateview />} />
+              <Route path="Prospects-Proposals/Views" element={<Proposalview />} />
+              <Route path="Prospects-Estimate Requests" element={<ProspectsEstimateRequests />} />
+              <Route path="Prospects-Estimate Requests/view/:id" element={<ViewEstimateRequest />} />
+              <Route path="Prospects-Estimate Forms" element={<ProspectsEstimateForms />} />
+              <Route path="Prospects-Estimate Forms/edit/:id" element={<EditEstimateForm />} />
+
+              <Route path="Prospects-Proposals" element={<ProspectsProposals />} >
+                <Route path="index" element={<ProposalsYear />} />
+                <Route index element={<ProposalsMonth />} />
+              </Route>
+              <Route path="Prospects-Proposals/view/:id" element={<ProposalView />} />
 
               <Route path="Reports" element={<Reports />} />
 
@@ -463,9 +459,9 @@ const MainLayout = () => {
             )}
 
               <Route path="notes" element={<Notes />} />
-              <Route path="messages" element={<MessageModule  />} />
-              <Route path="Tickets" element={<Tickets/>} />
-              <Route path="Tickets/ticket_Template" element={<Tickets/>} />
+              <Route path="messages" element={<MessageModule />} />
+              <Route path="tickets" element={<Tickets />} />
+              <Route path="tickets/ticket_template" element={<Tickets />} />
 
 
               

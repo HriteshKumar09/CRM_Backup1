@@ -14,19 +14,149 @@ import {
     Radio,
     Box,
     IconButton,
+    Autocomplete,
+    Chip,
 } from "@mui/material";
-import { Autocomplete } from "@mui/material";
 import { IoClose } from "react-icons/io5";
 import { FiCheckCircle } from "react-icons/fi";
 import { CiCamera } from "react-icons/ci";
-import api from "../Services/api"; // Central API instance
+import api from "../Services/api";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubmit, eventToEdit, resetForm }) => {
+const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubmit, eventToEdit, resetForm, clients, teamMembers }) => {
     const [showRepeatOptions, setShowRepeatOptions] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
-    const [clients, setClients] = useState([]); // Clients fetched from API
-    const [teamMembers, setTeamMembers] = useState([]); // Team members fetched from API
-    const [selectedTeamMembers, setSelectedTeamMembers] = useState([]); // Selected team members for "Specific members and teams"
+    const [selectedTeamMembers, setSelectedTeamMembers] = useState([]);
+    const [localClients, setLocalClients] = useState([]);
+    const [localTeamMembers, setLocalTeamMembers] = useState([]);
+    const [labels, setLabels] = useState([]);
+    const [selectedLabels, setSelectedLabels] = useState([]);
+
+    // Fetch clients and team members on component mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch clients
+                const clientsResponse = await api.get("/clients");
+                if (clientsResponse.data.success) {
+                    const formattedClients = clientsResponse.data.data.map(client => ({ 
+                        label: client.company_name, 
+                        value: client.id 
+                    }));
+                    setLocalClients(formattedClients);
+                }
+
+                // Fetch team members
+                const teamMembersResponse = await api.get("/team-members/get-members");
+                if (teamMembersResponse.data) {
+                    const formattedTeamMembers = teamMembersResponse.data.map(member => ({
+                        label: `${member.first_name} ${member.last_name}`,
+                        value: member.user_id,
+                    }));
+                    setLocalTeamMembers(formattedTeamMembers);
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                toast.error(error.response?.data?.message || "Error fetching data");
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // Add useEffect to fetch labels when modal opens
+    useEffect(() => {
+        const fetchLabels = async () => {
+            try {
+                const response = await api.get("/labels", {
+                    params: { context: "event" }
+                });
+                if (response.data.success) {
+                    const formattedLabels = response.data.labels.map(label => ({
+                        value: label.id,
+                        label: label.title,
+                        color: label.color,
+                        id: label.id
+                    }));
+                    setLabels(formattedLabels);
+                    
+                    // If editing an event, set its existing labels
+                    if (eventToEdit && eventToEdit.labels) {
+                        const existingLabels = eventToEdit.labels.split(',').map(id => 
+                            formattedLabels.find(label => label.id === parseInt(id))
+                        ).filter(Boolean);
+                        setSelectedLabels(existingLabels);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching labels:", error);
+                toast.error("Failed to fetch labels");
+            }
+        };
+
+        if (showModal) {
+            fetchLabels();
+        }
+    }, [showModal, eventToEdit]);
+
+    // Handle form submission
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        
+        try {
+            // Validate required fields
+            if (!newEvent.title || !newEvent.start_date || !newEvent.description) {
+                toast.error("Title, Description, and Start Date are required!");
+                return;
+            }
+
+            const eventData = {
+                title: newEvent.title,
+                description: newEvent.description,
+                start_date: newEvent.start_date,
+                end_date: newEvent.end_date || null,
+                start_time: newEvent.start_time || "00:00:00",
+                end_time: newEvent.end_time || "00:00:00",
+                created_by: getUserIdFromToken(),
+                location: newEvent.location || "",
+                client_id: newEvent.client_id || null,
+                labels: newEvent.labels || "",
+                share_with: newEvent.share_with === "specific" ? selectedTeamMembers.map(m => m.value).join(",") : newEvent.share_with,
+                color: newEvent.color || "#3788d8",
+                type: "event",
+                reminder_status: "new",
+                recurring: showRepeatOptions ? 1 : 0,
+                repeat_every: showRepeatOptions ? newEvent.repeatEvery : 0,
+                repeat_type: showRepeatOptions ? newEvent.repeatUnit : null,
+                no_of_cycles: showRepeatOptions ? newEvent.cycles : 0,
+                files: uploadedFile ? uploadedFile.name : ""
+            };
+
+            // Log the data being sent
+            console.log("Submitting event data:", eventData);
+
+            // Call the appropriate handler
+            await handleSubmit(eventData);
+        } catch (error) {
+            console.error("Error in form submission:", error);
+            toast.error(error.response?.data?.message || "Error saving event");
+        }
+    };
+
+    // Get user ID from token
+    const getUserIdFromToken = () => {
+        const token = localStorage.getItem("token");
+        if (!token) return null;
+
+        try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            return payload.userId;
+        } catch (error) {
+            console.error("Error parsing token:", error);
+            return null;
+        }
+    };
 
     // Handle file upload
     const handleFileUpload = (event) => {
@@ -42,28 +172,6 @@ const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubm
     const handleRemoveFile = () => {
         setUploadedFile(null);
     };
-
-    // Fetch clients and team members on component mount
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Fetch clients
-                const clientsResponse = await api.get("/clients");
-                setClients(clientsResponse.data.data.map(client => ({ label: client.company_name, value: client.id })));
-
-                // Fetch team members
-                const teamMembersResponse = await api.get("/team-members/get-members");
-                setTeamMembers(teamMembersResponse.data.map(member => ({
-                    label: `${member.first_name} ${member.last_name}`,
-                    value: member.user_id,
-                })));
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            }
-        };
-
-        fetchData();
-    }, []);
 
     // Handle change in "Share With" radio buttons
     const handleShareWithChange = (e) => {
@@ -82,6 +190,15 @@ const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubm
         setNewEvent({ ...newEvent, share_with_ids: newValue.map(member => member.value) });
     };
 
+    // Add handler for label selection
+    const handleLabelChange = (event, newValue) => {
+        setSelectedLabels(newValue);
+        setNewEvent({
+            ...newEvent,
+            labels: newValue.map(label => label.id).join(',')
+        });
+    };
+
     return (
         <Dialog
             open={showModal}
@@ -97,6 +214,19 @@ const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubm
                 },
             }}
         >
+            <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+                style={{ zIndex: 99999 }}
+            />
             {/* Dialog Title */}
             <DialogTitle
                 sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
@@ -115,7 +245,7 @@ const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubm
 
             {/* Dialog Content */}
             <DialogContent dividers className="dark:bg-gray-700 dark:text-white">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleFormSubmit}>
                     <Grid container spacing={2} alignItems="center">
                         {/* Title */}
                         <Grid item xs={4}>
@@ -132,6 +262,26 @@ const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubm
                                 required
                                 error={!newEvent?.title}
                                 helperText={!newEvent?.title ? "Title is required" : ""}
+                            />
+                        </Grid>
+
+                        {/* Description */}
+                        <Grid item xs={4}>
+                            <Typography variant="subtitle2" className="text-gray-500">Description</Typography>
+                        </Grid>
+                        <Grid item xs={8}>
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={3}
+                                variant="outlined"
+                                size="small"
+                                value={newEvent?.description || ""}
+                                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                                placeholder="Enter Description"
+                                required
+                                error={!newEvent?.description}
+                                helperText={!newEvent?.description ? "Description is required" : ""}
                             />
                         </Grid>
 
@@ -214,9 +364,9 @@ const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubm
                         <Grid item xs={8}>
                             <Autocomplete
                                 fullWidth
-                                options={clients}
+                                options={localClients}
                                 getOptionLabel={(option) => option.label}
-                                value={clients.find((client) => client.value === newEvent?.client_id) || null}
+                                value={localClients.find((client) => client.value === newEvent?.client_id) || null}
                                 onChange={(e, newValue) =>
                                     setNewEvent({ ...newEvent, client_id: newValue ? newValue.value : "" })
                                 }
@@ -255,7 +405,7 @@ const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubm
                                 <Autocomplete
                                     fullWidth
                                     multiple
-                                    options={teamMembers}
+                                    options={localTeamMembers}
                                     getOptionLabel={(option) => option.label}
                                     value={selectedTeamMembers}
                                     onChange={handleTeamMembersChange}
@@ -359,6 +509,54 @@ const EventModal = ({ showModal, setShowModal, newEvent, setNewEvent, handleSubm
                                     />
                                 ))}
                             </Box>
+                        </Grid>
+
+                        {/* Add Labels section after the Color Selection */}
+                        <Grid item xs={4}>
+                            <Typography variant="subtitle2" className="text-gray-500">Labels</Typography>
+                        </Grid>
+                        <Grid item xs={8}>
+                            <Autocomplete
+                                multiple
+                                options={labels}
+                                getOptionLabel={(option) => option.label}
+                                value={selectedLabels}
+                                onChange={handleLabelChange}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="Select labels"
+                                    />
+                                )}
+                                renderTags={(value, getTagProps) =>
+                                    value.map((option, index) => (
+                                        <Chip
+                                            {...getTagProps({ index })}
+                                            key={option.id}
+                                            label={option.label}
+                                            style={{ backgroundColor: option.color, color: 'white' }}
+                                        />
+                                    ))
+                                }
+                                renderOption={(props, option) => (
+                                    <li {...props}>
+                                        <Box
+                                            component="span"
+                                            sx={{
+                                                display: 'inline-block',
+                                                width: 12,
+                                                height: 12,
+                                                borderRadius: '50%',
+                                                backgroundColor: option.color,
+                                                mr: 1
+                                            }}
+                                        />
+                                        {option.label}
+                                    </li>
+                                )}
+                            />
                         </Grid>
                     </Grid>
 

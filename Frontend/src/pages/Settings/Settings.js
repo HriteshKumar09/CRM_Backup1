@@ -23,7 +23,7 @@ import IPRestrictionSettings from './components/AccessPermission/IPRestrictionSe
 import ClientPermissionSettings from './components/ClientPortal/ClientPermissionSettings';
 import ClientDashboardSettings from './components/ClientPortal/DashboardSettings';
 import ClientMenuSettings from './components/ClientPortal/MenuSettings';
-import ProjectSettings from './components/ClientPortal/ProjectSettings';
+
 
 // Sales & Prospects
 import CompanySettings from './components/SalesProspects/CompanySettings';
@@ -68,31 +68,6 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Handle initial navigation
-  useEffect(() => {
-    if (location.pathname === '/dashboard/settings') {
-      navigate('/dashboard/settings/general');
-    }
-  }, [location, navigate]);
-
-  // Update active tab based on current location
-  useEffect(() => {
-    const path = location.pathname.split('/').pop();
-    if (path && path !== 'settings') {
-      const tabName = path.split('-').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ');
-      setActiveTab(tabName);
-      // Clear loading state when navigation is complete
-      setLoading(false);
-    }
-  }, [location]);
-
-  // Save expanded menu state to localStorage
-  useEffect(() => {
-    localStorage.setItem('settingsExpandedMenu', expandedMenu);
-  }, [expandedMenu]);
-
   const settingsConfig = {
     'App Settings': {
       icon: FiSettings,
@@ -123,8 +98,7 @@ const Settings = () => {
       subMenus: [
         { name: 'Client Permissions', path: 'client-permissions', component: ClientPermissionSettings },
         { name: 'Dashboard', path: 'dashboard', component: ClientDashboardSettings },
-        { name: 'Left Menu', path: 'client-menu', component: ClientMenuSettings },
-        { name: 'Projects', path: 'projects', component: ProjectSettings }
+        { name: 'Left Menu', path: 'client-menu', component: ClientMenuSettings }
       ]
     },
     "Sales & Prospects": {
@@ -177,10 +151,48 @@ const Settings = () => {
   const handleTabClick = (tab) => {
     setActiveTab(tab);
     setLoading(true);
-    setError(null);
-    const path = tab.toLowerCase().replace(/ /g, '-');
-    navigate(`/dashboard/settings/${path}`);
+    // Find the path from config
+    let targetPath = '';
+    for (const data of Object.values(settingsConfig)) {
+      const subMenu = data.subMenus.find(menu => menu.name === tab);
+      if (subMenu) {
+        targetPath = subMenu.path;
+        break;
+      }
+    }
+    // Use replace to prevent history stacking
+    navigate(`/dashboard/settings/${targetPath}`, { replace: true });
+    setTimeout(() => setLoading(false), 300);
   };
+
+  // Handle initial navigation
+  useEffect(() => {
+    if (location.pathname === '/dashboard/settings') {
+      navigate('/dashboard/settings/general');
+    }
+  }, [location, navigate]);
+
+  // Update active tab based on current location
+  useEffect(() => {
+    const path = location.pathname.split('/').pop();
+    if (path && path !== 'settings') {
+      // Find the matching tab in the config
+      for (const [section, data] of Object.entries(settingsConfig)) {
+        const matchingTab = data.subMenus.find(menu => menu.path === path);
+        if (matchingTab) {
+          setActiveTab(matchingTab.name);
+          setExpandedMenu(section);
+          break;
+        }
+      }
+      setLoading(false);
+    }
+  }, [location]);
+
+  // Save expanded menu state to localStorage
+  useEffect(() => {
+    localStorage.setItem('settingsExpandedMenu', expandedMenu);
+  }, [expandedMenu]);
 
   // Get breadcrumb data
   const getBreadcrumbData = () => {
@@ -214,7 +226,7 @@ const Settings = () => {
             >
               <span className="flex items-center">
                 {moduleData.icon && <moduleData.icon className="w-4 h-4 mr-2" />}
-                <span className="font-medium">{moduleName}</span>
+              <span className="font-medium">{moduleName}</span>
               </span>
               {expandedMenu === moduleName ? (
                 <IoIosArrowDown className="w-4 h-4" />
@@ -276,7 +288,7 @@ const Settings = () => {
           </div>
         )}
 
-        {/* Loading State - Only show during navigation */}
+        {/* Loading State */}
         {loading && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
@@ -286,25 +298,29 @@ const Settings = () => {
         )}
 
         {/* Routes */}
-        <Routes>
-          {/* Redirect root settings to general */}
-          <Route path="/" element={<Navigate to="/dashboard/settings/general" replace />} />
-          
-          {/* Map all routes from the config */}
-          {Object.values(settingsConfig).flatMap(moduleData =>
-            moduleData.subMenus.map(subMenu => (
-              <Route
-                key={subMenu.path}
-                path={subMenu.path}
-                element={
-                  <ErrorBoundary>
-                    <subMenu.component />
-                  </ErrorBoundary>
-                }
-              />
-            ))
-          )}
-        </Routes>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <Routes>
+            <Route index element={<Navigate to="general" replace />} />
+            
+            {/* Map routes from config */}
+            {Object.entries(settingsConfig).map(([section, data]) =>
+              data.subMenus.map((subMenu) => (
+                <Route
+                  key={subMenu.path}
+                  path={subMenu.path}
+                  element={
+                    <div>
+                      {React.createElement(subMenu.component)}
+                    </div>
+                  }
+                />
+              ))
+            )}
+
+            {/* Catch-all route */}
+            <Route path="*" element={<Navigate to="general" replace />} />
+          </Routes>
+        </div>
       </div>
     </div>
   );

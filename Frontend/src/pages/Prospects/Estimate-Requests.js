@@ -12,6 +12,8 @@ import api from "../../Services/api.js";
 import { useNavigate } from "react-router-dom";
 import { CiSettings } from "react-icons/ci";
 import Pagination from "../../extra/Pagination.js"; // ✅ Import Pagination Component
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const EstimateRequests = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,7 +27,23 @@ const EstimateRequests = () => {
   const [showForm, setShowForm] = useState(false); // State to toggle popup
   const [isEditMode, setIsEditMode] = useState(false);
   const [openSingleEstimate, setOpenSingleEstimate] = useState(false);
-  const [openEditEstimate, setOpenEditEstimate] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(null);
+
+  // Status mapping for styling
+  const getStatusStyle = (status) => {
+    switch (status?.toLowerCase()) {
+      case "new":
+        return "bg-yellow-500";
+      case "processing":
+        return "bg-blue-500";
+      case "hold":
+        return "bg-orange-500";
+      case "estimated":
+        return "bg-green-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
 
   const handleSaveEstimate = () => {
     console.log("Saving estimate...", estimateData);
@@ -119,12 +137,35 @@ const EstimateRequests = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get("/estimate-requests");
-        setRequests(response.data);
-        setFilteredRequests(response.data);
+        console.log("Fetching estimate requests...");
+        const response = await api.get("/estimate/estimate-requests");
+        console.log("API Response:", response.data);
+        
+        if (response.data.success) {
+          // Map the data to match the frontend structure
+          const formattedData = response.data.data.map(request => ({
+            id: request.id,
+            client: request.client_id,
+            title: `Estimate Request #${request.id}`, // Use a generated title since it's not in the database
+            assigned: request.assigned_to,
+            createDate: new Date(request.created_at).toLocaleDateString(),
+            status: request.status || "New",
+            estimate_form_id: request.estimate_form_id
+          }));
+          console.log("Formatted Data:", formattedData);
+          setRequests(formattedData);
+          setFilteredRequests(formattedData);
+        } else {
+          console.error("API returned success: false");
+          setError(response.data.message || "Failed to fetch estimate requests");
+        }
       } catch (error) {
-        setError("Error fetching estimate requests.");
-        console.error("API Error:", error);
+        console.error("API Error Details:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        setError(error.response?.data?.message || "Error fetching estimate requests");
       } finally {
         setLoading(false);
       }
@@ -193,35 +234,63 @@ const EstimateRequests = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredRequests.slice(indexOfFirstItem, indexOfLastItem);
 
-  const [dropdownOpen, setDropdownOpen] = useState(null);
-  const [statuses, setStatuses] = useState(
-    currentItems.reduce((acc, item) => ({ ...acc, [item.id]: item.status }), {})
-  );
-
   // ✅ Handle status change & close dropdown
-  const handleStatusChange = (id, newStatus) => {
-    setStatuses((prev) => ({ ...prev, [id]: newStatus }));
-    setDropdownOpen(null);
-    console.log(`Status changed for ID ${id} to: ${newStatus}`);
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const response = await api.put(`/estimate-requests/${id}`, { status: newStatus });
+      if (response.data.success) {
+        // Update the local state
+        setRequests(prev => prev.map(request => 
+          request.id === id ? { ...request, status: newStatus } : request
+        ));
+        setFilteredRequests(prev => prev.map(request => 
+          request.id === id ? { ...request, status: newStatus } : request
+        ));
+        toast.success("Status updated successfully");
+      } else {
+        toast.error("Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error(error.response?.data?.message || "Failed to update status");
+    }
   };
 
   // ✅ Delete Function
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this estimate request?")) {
-      return; // Stop execution if user cancels
+      return;
     }
 
     try {
-      await api.delete(`/estimate-requests/${id}`); // ✅ API Call to Delete
-      setRequests((prev) => prev.filter((request) => request.id !== id)); // ✅ Remove from State
-      setFilteredRequests((prev) => prev.filter((request) => request.id !== id));
+      const response = await api.delete(`/estimate-requests/${id}`);
+      if (response.data.success) {
+        setRequests(prev => prev.filter(request => request.id !== id));
+        setFilteredRequests(prev => prev.filter(request => request.id !== id));
+        toast.success("Estimate request deleted successfully");
+      } else {
+        toast.error("Failed to delete estimate request");
+      }
     } catch (error) {
       console.error("Error deleting estimate request:", error);
+      toast.error(error.response?.data?.message || "Failed to delete estimate request");
     }
   };
 
   return (
     <div>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <PageNavigation
         title="Estimate Requests"
         buttons={[{ label: "Create estimate request", icon: FiPlusCircle, onClick: () => setShowForm(true) }]}
@@ -299,26 +368,29 @@ const EstimateRequests = () => {
                         (col) =>
                           visibleColumns[col.key] && (
                             <td key={col.key} className="border border-gray-300 px-4 py-2">
-                              {/* ✅ Handle Status Styling */}
-                              {col.key === "status" ? (
-                                <span
-                                  className={`px-3 py-1 rounded-lg text-white text-xs font-bold ${statuses[request.id] === "New"
-                                    ? "bg-yellow-500"
-                                    : statuses[request.id] === "Processing"
-                                      ? "bg-blue-500"
-                                      : statuses[request.id] === "Hold"
-                                        ? "bg-orange-500"
-                                        : statuses[request.id] === "Canceled"
-                                          ? "bg-red-500"
-                                          : statuses[request.id] === "Estimated"
-                                            ? "bg-green-500"
-                                            : "bg-gray-300"
-                                    }`}
+                              {/* Handle ID and Client Navigation */}
+                              {col.key === "id" ? (
+                                <button
+                                  onClick={() => navigate(`/dashboard/Prospects-Estimate Requests/view/${request.id}`)}
+                                  className="text-blue-500 hover:text-blue-700"
                                 >
-                                  {statuses[request.id]}
+                                  {request.id}
+                                </button>
+                              ) : col.key === "client" ? (
+                                <button
+                                  onClick={() => navigate(`/dashboard/clients/view/${request.client}`)}
+                                  className="text-blue-500 hover:text-blue-700"
+                                >
+                                  {request.client}
+                                </button>
+                              ) : col.key === "status" ? (
+                                <span
+                                  className={`px-3 py-1 rounded-lg text-white text-xs font-bold ${getStatusStyle(request.status)}`}
+                                >
+                                  {request.status || "New"}
                                 </span>
                               ) : col.key === "action" ? (
-                                /* ✅ Action Button */
+                                /* Action Button */
                                 <div className="relative">
                                   <button
                                     className="p-1 rounded transition-colors duration-200 hover:bg-green-200"
@@ -331,7 +403,7 @@ const EstimateRequests = () => {
                                     <CiSettings size={18} className="text-green-600" />
                                   </button>
 
-                                  {/* ✅ Dropdown Menu */}
+                                  {/* Dropdown Menu */}
                                   {dropdownOpen === request.id && (
                                     <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                                       <button
@@ -362,7 +434,7 @@ const EstimateRequests = () => {
                                         Mark as Hold
                                       </button>
                                       <button
-                                        onClick={handleOpenEstimateForm} // ✅ Click to open
+                                        onClick={handleOpenEstimateForm}
                                         className="w-full text-left p-2 flex items-center hover:bg-gray-100"
                                       >
                                         <FiPlus size={18} className="mr-2" />
@@ -379,7 +451,7 @@ const EstimateRequests = () => {
                                   )}
                                 </div>
                               ) : (
-                                /* ✅ Display Other Columns */
+                                /* Display Other Columns */
                                 request[col.key] ?? "N/A"
                               )}
                             </td>

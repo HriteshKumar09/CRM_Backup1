@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import api from "../../Services/api.js";
 import PageNavigation from "../../extra/PageNavigation.js";
 import { FiPlusCircle, FiEdit } from "react-icons/fi";
@@ -10,104 +10,142 @@ import ExportSearchControls from "../../extra/ExportSearchControls.js";
 import { LuColumns2 } from "react-icons/lu";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import Pagination from "../../extra/Pagination.js";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const EstimateForms = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [estimates, setEstimates] = useState([]);
+  const [forms, setForms] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    status: "Active",
+    assigned_to: "",
+    public: false,
+    enable_attachment: false
+  });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // ✅ Pagination: Show 5 items per page
+  const itemsPerPage = 5;
 
-  // ✅ Column Visibility State
+  // Column Visibility State
   const [visibleColumns, setVisibleColumns] = useState({
     title: true,
-    public: true,
-    embed: true,
+    description: true,
     status: true,
+    assigned: true,
+    public: true,
     action: true,
   });
 
-  // ✅ Column Headers
+  // Column Headers
   const columns = [
     { key: "title", label: "Title" },
-    { key: "public", label: "Public" },
-    { key: "embed", label: "Embed" },
+    { key: "description", label: "Description" },
     { key: "status", label: "Status" },
+    { key: "assigned", label: "Assigned To" },
+    { key: "public", label: "Public" },
     { key: "action", label: "Action" },
   ];
 
-  // ✅ Toggle Column Visibility
-  const toggleColumn = (key) => {
-    setVisibleColumns((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  // ✅ Fetch Estimates from API
+  // Fetch Forms from API
   useEffect(() => {
-    const fetchEstimates = async () => {
+    const fetchForms = async () => {
       setLoading(true);
       try {
-        const response = await api.get("/estimates");
-        setEstimates(response.data);
+        const response = await api.get("/estimate/forms/all");
+        if (response.data.success) {
+          setForms(response.data.forms);
+        } else {
+          setError("Failed to fetch forms.");
+          toast.error("Failed to fetch forms");
+        }
       } catch (err) {
-        setError("Failed to fetch estimates.");
+        setError("Failed to fetch forms.");
+        toast.error(err.response?.data?.message || "Failed to fetch forms");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    fetchEstimates();
+    fetchForms();
   }, []);
 
-  // ✅ Filter Estimates Based on Search Query
-  const filteredEstimates = estimates.filter((estimate) =>
-    estimate.title.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter Forms Based on Search Query
+  const filteredForms = forms.filter((form) =>
+    form.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // ✅ Pagination Logic
+  // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentEstimates = filteredEstimates.slice(indexOfFirstItem, indexOfLastItem);
+  const currentForms = filteredForms.slice(indexOfFirstItem, indexOfLastItem);
 
-  // ✅ Handle Add/Edit Estimate
+  // Handle Add/Edit Form
   const handleSaveFields = async () => {
     try {
       if (isEditMode) {
-        await api.put(`/estimates/${formData.id}`, formData);
-        setEstimates(estimates.map((item) => (item.id === formData.id ? formData : item)));
+        const response = await api.put(`/estimate/forms/${formData.id}`, formData);
+        if (response.data.success) {
+          setForms(forms.map((item) => (item.id === formData.id ? formData : item)));
+          toast.success("Form updated successfully");
+        } else {
+          toast.error("Failed to update form");
+        }
       } else {
-        const response = await api.post("/estimates", formData);
-        setEstimates([...estimates, response.data]);
+        const response = await api.post("/estimate/forms/create", formData);
+        if (response.data.success) {
+          setForms([...forms, response.data.form]);
+          toast.success("Form created successfully");
+        } else {
+          toast.error("Failed to create form");
+        }
       }
       setIsFormOpen(false);
+      setFormData({
+        title: "",
+        description: "",
+        status: "Active",
+        assigned_to: "",
+        public: false,
+        enable_attachment: false
+      });
     } catch (error) {
-      console.error("Error saving estimate:", error);
+      console.error("Error saving form:", error);
+      toast.error(error.response?.data?.message || "Error saving form");
     }
   };
 
-  // ✅ Handle Edit Click
-  const handleEdit = (estimate) => {
-    setFormData(estimate);
+  // Handle Edit Click
+  const handleEdit = (form) => {
+    setFormData(form);
     setIsEditMode(true);
     setIsFormOpen(true);
   };
 
-  // ✅ Handle Delete
+  // Handle Delete
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this form?")) {
+      return;
+    }
+
     try {
-      await api.delete(`/estimates/${id}`);
-      setEstimates(estimates.filter((item) => item.id !== id));
+      const response = await api.delete(`/estimate/forms/${id}`);
+      if (response.data.success) {
+        setForms(forms.filter((item) => item.id !== id));
+        toast.success("Form deleted successfully");
+      } else {
+        toast.error("Failed to delete form");
+      }
     } catch (error) {
-      console.error("Error deleting estimate:", error);
+      console.error("Error deleting form:", error);
+      toast.error(error.response?.data?.message || "Failed to delete form");
     }
   };
 
-  // ✅ Form Fields
+  // Form Fields
   const FormFields = [
     { name: "title", label: "Title", type: "text", required: true },
     { name: "description", label: "Description", type: "textarea", multiline: true, rows: 2 },
@@ -120,50 +158,59 @@ const EstimateForms = () => {
         { label: "Inactive", value: "Inactive" }
       ]
     },
-    { name: "assign", label: "Auto assign estimate request to", type: "select", options: [] },
+    { name: "assigned_to", label: "Assigned To", type: "text" },
     { name: "public", label: "Public", type: "checkbox" },
-    { name: "attachment", label: "Enable attachment", type: "checkbox" },
+    { name: "enable_attachment", label: "Enable Attachment", type: "checkbox" },
   ];
 
   return (
     <div>
-      {/* Page Navigation with Add Form Button */}
+      <ToastContainer position="top-right" autoClose={3000} />
+      
       <PageNavigation
         title="Estimate Request Forms"
         buttons={[
           {
-            label: "Add Form", icon: FiPlusCircle, onClick: () => {
+            label: "Add Form",
+            icon: FiPlusCircle,
+            onClick: () => {
               setIsEditMode(false);
-              setFormData({});
+              setFormData({
+                title: "",
+                description: "",
+                status: "Active",
+                assigned_to: "",
+                public: false,
+                enable_attachment: false
+              });
               setIsFormOpen(true);
             }
           },
         ]}
       />
 
-      {/* Toolbar */}
       <div className="border-t bg-white border-gray-200 w-full flex justify-between p-4 dark:bg-gray-700 dark:text-white">
         <div className="flex items-center space-x-4">
           <DropdownButton
             icon={LuColumns2}
             options={columns}
             visibleItems={visibleColumns}
-            toggleItem={toggleColumn}
+            toggleItem={(key) => setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }))}
           />
         </div>
         <div className="flex items-center gap-2">
           <ExportSearchControls
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            fileName="yearly_estimates"
+            data={filteredForms}
+            fileName="estimate_forms"
           />
         </div>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         {loading ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-4">Loading estimates...</p>
+          <p className="text-center text-gray-500 dark:text-gray-400 py-4">Loading forms...</p>
         ) : error ? (
           <p className="text-center text-red-500 dark:text-red-400 py-4">{error}</p>
         ) : (
@@ -181,32 +228,54 @@ const EstimateForms = () => {
               </tr>
             </thead>
             <tbody>
-              {currentEstimates.map((estimate) => (
-                <tr key={estimate.id}>
-                  <td>
-                    {/* ✅ Navigate to another page when clicking the title */}
-                    <Link
-                      to={`/dashboard/edit_estimate_form/${estimate.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {estimate.title}
-                    </Link>
-                  </td>
-                  <td>
-                    {/* ✅ Show "Active" or "Inactive" with different styles */}
-                    <span className={`px-3 py-1 rounded-lg text-white text-xs font-bold ${estimate.status === "Active" ? "bg-green-500" : "bg-gray-400"
+              {currentForms.map((form) => (
+                <tr key={form.id}>
+                  {visibleColumns.title && (
+                    <td className="px-4 py-2 border">
+                      <Link
+                        to={`/dashboard/Prospects-Estimate Forms/edit/${form.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {form.title}
+                      </Link>
+                    </td>
+                  )}
+                  {visibleColumns.description && (
+                    <td className="px-4 py-2 border">{form.description}</td>
+                  )}
+                  {visibleColumns.status && (
+                    <td className="px-4 py-2 border">
+                      <span className={`px-3 py-1 rounded-lg text-white text-xs font-bold ${
+                        form.status === "Active" ? "bg-green-500" : "bg-gray-400"
                       }`}>
-                      {estimate.status}
-                    </span>
-                  </td>
-                  <td>
-                    <button onClick={() => handleEdit(estimate)} className="p-1 rounded hover:bg-blue-200">
-                      <FiEdit className="text-blue-600" />
-                    </button>
-                    <button onClick={() => handleDelete(estimate.id)} className="p-1 rounded hover:bg-red-200">
-                      <SlClose className="text-red-500" />
-                    </button>
-                  </td>
+                        {form.status}
+                      </span>
+                    </td>
+                  )}
+                  {visibleColumns.assigned && (
+                    <td className="px-4 py-2 border">{form.assigned_to}</td>
+                  )}
+                  {visibleColumns.public && (
+                    <td className="px-4 py-2 border">
+                      {form.public ? "Yes" : "No"}
+                    </td>
+                  )}
+                  {visibleColumns.action && (
+                    <td className="px-4 py-2 border">
+                      <button
+                        onClick={() => handleEdit(form)}
+                        className="p-1 rounded hover:bg-blue-200 mr-2"
+                      >
+                        <FiEdit className="text-blue-600" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(form.id)}
+                        className="p-1 rounded hover:bg-red-200"
+                      >
+                        <SlClose className="text-red-500" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -214,9 +283,8 @@ const EstimateForms = () => {
         )}
       </div>
 
-      {/* ✅ Pagination */}
       <Pagination
-        totalItems={filteredEstimates.length}
+        totalItems={filteredForms.length}
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
@@ -225,14 +293,25 @@ const EstimateForms = () => {
       <FormDialog
         open={isFormOpen}
         handleClose={() => setIsFormOpen(false)}
-        type={isEditMode ? " Form" : "Form"}
+        type={isEditMode ? "Edit Form" : "Add Form"}
         fields={FormFields}
         formData={formData}
-        handleChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })}
+        handleChange={(e) => {
+          const { name, value, type, checked } = e.target;
+          setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+          }));
+        }}
         handleSave={handleSaveFields}
         showUploadButton={true}
         extraButtons={[
-          { label: "Save", onClick: handleSaveFields, icon: IoMdCheckmarkCircleOutline, color: "#007bff" },
+          {
+            label: "Save",
+            onClick: handleSaveFields,
+            icon: IoMdCheckmarkCircleOutline,
+            color: "#007bff"
+          },
         ]}
       />
     </div>

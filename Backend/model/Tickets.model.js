@@ -1,32 +1,43 @@
 import db from "../config/db.js";  // Import MySQL connection
 
+// Helper function to format dates for MySQL
+const formatDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    return d.toISOString().slice(0, 19).replace('T', ' ');
+};
+
 // Function to create a new ticket
 export const createTicket = (ticketData) => {
     return new Promise((resolve, reject) => {
         const query = `
-            INSERT INTO _tickets (client_id, project_id, ticket_type_id, title, 
-            created_by, requested_by, created_at, status, last_activity_at, assigned_to, 
-            creator_name, creator_email, labels, task_id, closed_at, merged_with_ticket_id, deleted)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
+            INSERT INTO _tickets (
+                client_id, project_id, ticket_type_id, title, 
+                created_by, requested_by, created_at, status, 
+                last_activity_at, assigned_to, creator_name, 
+                creator_email, labels, task_id, closed_at, 
+                merged_with_ticket_id, deleted
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
+
         const values = [
             ticketData.client_id,
-            ticketData.project_id,
+            ticketData.project_id || 0,
             ticketData.ticket_type_id,
             ticketData.title,
             ticketData.created_by,
-            ticketData.requested_by,
-            ticketData.created_at,
-            ticketData.status,
-            ticketData.last_activity_at,
-            ticketData.assigned_to,
+            ticketData.requested_by || 0,
+            formatDate(ticketData.created_at),
+            ticketData.status || 'new',
+            formatDate(ticketData.last_activity_at),
+            ticketData.assigned_to || 0,
             ticketData.creator_name,
             ticketData.creator_email,
-            ticketData.labels,
-            ticketData.task_id,
-            ticketData.closed_at || new Date(),
-            ticketData.merged_with_ticket_id,
-            ticketData.deleted,
+            ticketData.labels || null,
+            ticketData.task_id || 0,
+            formatDate(new Date()), // Set current date for closed_at since it's NOT NULL
+            ticketData.merged_with_ticket_id || 0,
+            ticketData.deleted || 0
         ];
 
         db.query(query, values, (err, result) => {
@@ -315,6 +326,98 @@ export const getAllTicketTypes = () => {
             }
 
             resolve({ success: true, ticketTypes: result });
+        });
+    });
+};
+
+// Function to create a new ticket type
+export const createTicketType = (data) => {
+    return new Promise((resolve, reject) => {
+        const query = "INSERT INTO _ticket_types (title, deleted) VALUES (?, 0)";
+        
+        db.query(query, [data.title], (err, result) => {
+            if (err) {
+                console.error("❌ Error creating ticket type:", err);
+                return reject({ message: "Database error", error: err });
+            }
+
+            // Fetch the newly created ticket type
+            const selectQuery = "SELECT * FROM _ticket_types WHERE id = ?";
+            db.query(selectQuery, [result.insertId], (err, rows) => {
+                if (err) {
+                    console.error("❌ Error fetching created ticket type:", err);
+                    return reject({ message: "Database error", error: err });
+                }
+                resolve({ success: true, ticketType: rows[0] });
+            });
+        });
+    });
+};
+
+// Function to update a ticket type
+export const updateTicketType = (id, data) => {
+    return new Promise((resolve, reject) => {
+        const query = "UPDATE _ticket_types SET title = ? WHERE id = ? AND deleted = 0";
+        
+        db.query(query, [data.title, id], (err, result) => {
+            if (err) {
+                console.error("❌ Error updating ticket type:", err);
+                return reject({ message: "Database error", error: err });
+            }
+
+            if (result.affectedRows === 0) {
+                return reject({ message: "Ticket type not found" });
+            }
+
+            // Fetch the updated ticket type
+            const selectQuery = "SELECT * FROM _ticket_types WHERE id = ?";
+            db.query(selectQuery, [id], (err, rows) => {
+                if (err) {
+                    console.error("❌ Error fetching updated ticket type:", err);
+                    return reject({ message: "Database error", error: err });
+                }
+                resolve({ success: true, ticketType: rows[0] });
+            });
+        });
+    });
+};
+
+// Function to delete a ticket type
+export const deleteTicketType = (id) => {
+    return new Promise((resolve, reject) => {
+        const query = "UPDATE _ticket_types SET deleted = 1 WHERE id = ?";
+        
+        db.query(query, [id], (err, result) => {
+            if (err) {
+                console.error("❌ Error deleting ticket type:", err);
+                return reject({ message: "Database error", error: err });
+            }
+
+            if (result.affectedRows === 0) {
+                return reject({ message: "Ticket type not found" });
+            }
+
+            resolve({ success: true, message: "Ticket type deleted successfully" });
+        });
+    });
+};
+
+// Function to get projects by client ID
+export const getProjectsByClientId = (clientId) => {
+    return new Promise((resolve, reject) => {
+        const query = `
+            SELECT id, title, client_id 
+            FROM _projects 
+            WHERE client_id = ? AND deleted = 0
+            ORDER BY title ASC
+        `;
+
+        db.query(query, [clientId], (err, results) => {
+            if (err) {
+                console.error("❌ Error fetching projects:", err);
+                return reject({ message: "Database error", error: err });
+            }
+            resolve({ success: true, projects: results });
         });
     });
 };

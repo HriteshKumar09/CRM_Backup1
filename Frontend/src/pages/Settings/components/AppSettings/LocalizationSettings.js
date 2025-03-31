@@ -344,23 +344,23 @@ const LocalizationSettings = () => {
             </label>
             {conversionRates.map((rate, index) => (
               <div key={index} className="flex items-center space-x-2 mb-2">
-                <select
+              <select
                   value={rate.currency}
                   onChange={(e) => handleConversionRateChange(index, 'currency', e.target.value)}
-                  className="mt-1 block w-32 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                >
+                className="mt-1 block w-32 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
                   <option value="">Select Currency</option>
-                  <option value="AED">AED</option>
-                  <option value="USD">USD</option>
+                <option value="AED">AED</option>
+                <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
-                </select>
-                <input
-                  type="text"
+              </select>
+              <input
+                type="text"
                   value={rate.rate}
                   onChange={(e) => handleConversionRateChange(index, 'rate', e.target.value)}
-                  placeholder="Conversion rate"
-                  className="mt-1 block w-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
+                placeholder="Conversion rate"
+                className="mt-1 block w-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
                 {index > 0 && (
                   <button
                     type="button"
@@ -372,13 +372,13 @@ const LocalizationSettings = () => {
                 )}
               </div>
             ))}
-            <button
-              type="button"
-              onClick={handleAddMore}
-              className="text-blue-600 hover:text-blue-700 text-sm"
-            >
-              Add more
-            </button>
+              <button
+                type="button"
+                onClick={handleAddMore}
+                className="text-blue-600 hover:text-blue-700 text-sm"
+              >
+                Add more
+              </button>
           </div>
 
           {/* Save Button */}

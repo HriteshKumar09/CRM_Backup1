@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PageNavigation from "../../extra/PageNavigation";
@@ -5,6 +6,7 @@ import { FiEdit, FiTag, FiPlusCircle, FiPlus } from "react-icons/fi";
 import { SlClose } from "react-icons/sl";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
+import { ToastContainer, toast } from "react-toastify";
 import { GoIssueClosed } from "react-icons/go";
 import { LuColumns2 } from "react-icons/lu";
 import ExportSearchControls from "../../extra/ExportSearchControls";
@@ -28,12 +30,14 @@ const ClientPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [openImport, setOpenImport] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const totalItems = clients.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const context = "client";
   const displayedClients = clients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // Column Visibility State
@@ -63,6 +67,29 @@ const ClientPage = () => {
     { key: "due", label: "Due" },
     { key: "action", label: "Action" },
   ];
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch team members
+        const teamMembersResponse = await api.get("/team-members/get-members");
+        if (teamMembersResponse.data && teamMembersResponse.data.length) {
+          setTeamMembers(
+            teamMembersResponse.data.map((member) => ({
+              label: `${member.first_name} ${member.last_name}`,
+              value: member.user_id,
+            }))
+          );
+        } else {
+          console.log("No team members found");
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Fetch Clients Data from API
   useEffect(() => {
@@ -73,7 +100,7 @@ const ClientPage = () => {
           const mappedClients = response.data.data.map((client) => ({
             id: client.id,
             name: client.company_name,
-            primary: client.address,
+            primary: "",
             client: client.group_ids,
             labels: client.labels,
             projects: "",
@@ -106,10 +133,18 @@ const ClientPage = () => {
     try {
       const response = await api.delete(`/clients/${id}`);
       if (response.data.success) {
+        // Update state to remove deleted client
         setClients((prev) => prev.filter((client) => client.id !== id));
+        // Show success toast message
+        toast.success("Client deleted successfully!");
+      } else {
+        // If the API returns a failure, show error toast message
+        toast.error("Failed to delete client.");
       }
     } catch (error) {
+      // Catch any errors and show error toast message
       console.error("Error deleting client:", error);
+      toast.error("An error occurred while deleting the client.");
     }
   };
 
@@ -133,10 +168,38 @@ const ClientPage = () => {
     }
   };
 
-  // Filter Clients Based on Search Query
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const quickFilters = [
+    { value: "all", label: "- Quick filters -" },
+    { value: "hasOpenProjects", label: "Has Open Projects" },
+    { value: "hasCompletedProjects", label: "Has Completed Projects" },
+    { value: "hasHoldProjects", label: "Has Hold Projects" },
+    { value: "hasCanceledProjects", label: "Has Canceled Projects" },
+    { value: "hasUnpaidInvoices", label: "Has Unpaid Invoices" },
+    { value: "hasOverdueInvoices", label: "Has Overdue Invoices" },
+  ];
+  const [selectedQuickFilter, setSelectedQuickFilter] = useState(quickFilters[0]); // Default to "All Clients"
+
+  // Filter Clients Based on Search Query and Quick Filter
+  const filteredClients = clients.filter((client) => {
+    const matchesSearchQuery = client.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    switch (selectedQuickFilter.value) {
+      case "hasOpenProjects":
+        return matchesSearchQuery && client.openProjects > 0;
+      case "hasCompletedProjects":
+        return matchesSearchQuery && client.completedProjects > 0;
+      case "hasHoldProjects":
+        return matchesSearchQuery && client.holdProjects > 0;
+      case "hasCanceledProjects":
+        return matchesSearchQuery && client.canceledProjects > 0;
+      case "hasUnpaidInvoices":
+        return matchesSearchQuery && client.unpaidInvoices > 0;
+      case "hasOverdueInvoices":
+        return matchesSearchQuery && client.overdueInvoices > 0;
+      default:
+        return matchesSearchQuery; // Default: Show all clients
+    }
+  });
 
   // Form State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -144,14 +207,14 @@ const ClientPage = () => {
   const [formData, setFormData] = useState({
     type: "Organization",
     companyName: "",
-    owner: "Admin P",
+    owner: "",
     address: "",
     city: "",
     state: "",
     zip: "",
     country: "",
     phone: "",
-    email: "",
+    Website: "",
     vatNumber: "",
     gstNumber: "",
     clientGroups: "",
@@ -167,14 +230,14 @@ const ClientPage = () => {
     setFormData({
       type: "Organization",
       companyName: "",
-      owner: "Admin P",
+      owner: "",
       address: "",
       city: "",
       state: "",
       zip: "",
       country: "",
       phone: "",
-      email: "",
+      Website: "",
       vatNumber: "",
       gstNumber: "",
       clientGroups: "",
@@ -189,29 +252,78 @@ const ClientPage = () => {
   // Open Edit Client Dialog
   const handleEditClient = (client) => {
     setIsEditMode(true);
-    setFormData(client);
+    // Ensure form data is populated correctly for editing
+    setFormData({
+      id: client.id,
+      type: client.type || "Organization", // Default type if undefined
+      companyName: client.name, // Mapping name to companyName for editing
+      owner: client.owner || "", // Default owner if undefined
+      address: client.address || "",
+      city: client.city || "",
+      state: client.state || "",
+      zip: client.zip || "",
+      country: client.country || "",
+      phone: client.phone || "",
+      website: client.website || "",
+      vatNumber: client.vat_number || "",
+      gstNumber: client.gst_number || "",
+      clientGroups: client.client_groups || "",
+      currency: client.currency || "",
+      currencySymbol: client.currency_symbol || "",
+      labels: client.labels || "", // Ensure labels are set correctly
+      disablePayment: client.disable_payment || false,
+    });
     setIsDialogOpen(true);
   };
 
   // Save New or Updated Client
   const handleSaveClient = async () => {
     try {
+      const clientPayload = {
+        type: formData.type,
+        company_name: formData.companyName,
+        owner: formData.owner,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        country: formData.country,
+        phone: formData.phone,
+        Website: formData.website,
+        vat_number: formData.vatNumber,
+        gst_number: formData.gstNumber,
+        client_groups: formData.clientGroups,
+        currency: formData.currency,
+        currency_symbol: formData.currencySymbol,
+        labels: formData.labels,
+        disable_payment: formData.disablePayment,
+      };
+
+      let response;
       if (isEditMode) {
-        // Update existing client
-        const response = await api.put(`/clients/${formData.id}`, formData);
-        if (response.data.success) {
-          setClients((prev) => prev.map((c) => (c.id === formData.id ? response.data.data : c)));
+        // Update existing client (PUT request)
+        response = await api.put(`/clients/${formData.id}`, clientPayload);
+        if (response.data.data.success) {
+          setClients((prev) =>
+            prev.map((client) =>
+              client.id === formData.id ? { ...client, ...response.data.data } : client
+            )
+          );
+          toast.success("Client updated successfully!");
         }
       } else {
-        // Add new client
-        const response = await api.post("/clients", formData);
-        if (response.data.success) {
+        // Add new client (POST request)
+        response = await api.post("/clients", clientPayload);
+        if (response.data.data.success) {
           setClients((prev) => [...prev, response.data.data]);
+          toast.success("Client created successfully!");
         }
       }
-      setIsDialogOpen(false);
+
+      setIsDialogOpen(false); // Close the dialog
     } catch (error) {
       console.error("Error saving client:", error);
+      toast.error("Failed to save client.");
     }
   };
 
@@ -231,6 +343,7 @@ const ClientPage = () => {
 
   return (
     <div className="h-full">
+      <ToastContainer />
       <PageNavigation
         labels={[
           { label: "Overview", value: "overview" },
@@ -274,10 +387,12 @@ const ClientPage = () => {
       {showFilters && (
         <div className="flex items-center bg-white border-t border-gray-200 p-4 gap-2 dark:bg-gray-700 dark:text-white" ref={dropdownRef}>
           <Select
-            options={[]} // Add your filter options here
+            options={quickFilters}
+            value={selectedQuickFilter}
+            onChange={setSelectedQuickFilter}
             placeholder="- Quick filters -"
             isSearchable
-            className="w-48"
+            className="w-48 "
           />
           <Select
             options={[]} // Add your owner options here
@@ -292,7 +407,7 @@ const ClientPage = () => {
             className="w-48"
           />
           <Select
-            options={[]} // Add your label options here
+            options={labelsList} // Add your label options here
             placeholder="- Label -"
             isSearchable
             className="w-48"
@@ -326,29 +441,51 @@ const ClientPage = () => {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-700 dark:text-white">
           {filteredClients.map((client) => (
-            <tr key={client.id} className="border-t " >
+            <tr key={client.id} className="border-t">
               {visibleColumns.id && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.id}</td>}
-              {visibleColumns.name && <td className="px-6 py-4 whitespace-nowrap text-sm cursor-pointer" onClick={() => navigate(`/dashboard/clients/view/${client.id}`)}>{client.name}</td>}
-              {visibleColumns.primary && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.primary}</td>}
-              {visibleColumns.client && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.client}</td>}
-              {visibleColumns.labels && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.labels}</td>}
-              {visibleColumns.projects && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.projects}</td>}
-              {visibleColumns.totalinvoiced && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.totalinvoiced}</td>}
-              {visibleColumns.paymentreceived && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.paymentreceived}</td>}
-              {visibleColumns.due && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.due}</td>}
+
+              {visibleColumns.name && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm cursor-pointer text-blue-300" onClick={() => navigate(`/dashboard/clients/view/${client.id}/contacts`)}>
+                  {client.name}
+                </td>
+              )}
+
+              {visibleColumns.primary && <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-300">{client.primary || "-"}</td>}
+              {visibleColumns.client && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.client || "-"}</td>}
+              {visibleColumns.labels && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.labels || "-"}</td>}
+              {visibleColumns.projects && <td className="px-6 py-4 whitespace-nowrap text-sm">{client.projects || "-"}</td>}
+
+              {visibleColumns.totalinvoiced && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  ₹{client.totalinvoiced ? Number(client.totalinvoiced).toFixed(1) : "00.0"}
+                </td>
+              )}
+
+              {visibleColumns.paymentreceived && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  ₹{client.paymentreceived ? Number(client.paymentreceived).toFixed(1) : "00.0"}
+                </td>
+              )}
+
+              {visibleColumns.due && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  ₹{client.due ? Number(client.due).toFixed(1) : "00.0"}
+                </td>
+              )}
+
               {visibleColumns.action && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <button
                     onClick={() => handleEditClient(client)}
                     className="p-1 rounded transition-colors duration-200 mr-2"
                   >
-                    <FiEdit className="hover:text-white hover:bg-green-500 rounded-lg" size={20} />
+                    <FiEdit className="text-blue-600 hover:bg-blue-200 rounded-lg" size={20} />
                   </button>
                   <button
                     onClick={() => handleDelete(client.id)}
                     className="p-1 rounded transition-colors duration-200"
                   >
-                    <SlClose className="hover:text-white hover:bg-red-500 rounded-xl" size={20} />
+                    <SlClose className="text-red-500 hover:bg-red-200 rounded-xl" size={20} />
                   </button>
                 </td>
               )}
@@ -368,25 +505,27 @@ const ClientPage = () => {
         open={isDialogOpen}
         handleClose={() => setIsDialogOpen(false)}
         fields={[
-          { name: "type", label: "Type", type: "radio", options: [
-            { value: "Organization", label: "Organization" },
-            { value: "Person", label: "Person" },
-          ]},
+          {
+            name: "type", label: "Type", type: "radio", options: [
+              { value: "Organization", label: "Organization" },
+              { value: "Person", label: "Person" },
+            ]
+          },
           { name: "companyName", label: "Company Name", type: "text" },
-          { name: "owner", label: "Owner", type: "select", options: [{ value: "admin_p", label: "Admin P" }] },
+          { name: "owner", label: "Owner", type: "select", options: teamMembers },
           { name: "address", label: "Address", type: "text", multiline: true, rows: 2 },
           { name: "city", label: "City", type: "text" },
           { name: "state", label: "State", type: "text" },
           { name: "zip", label: "Zip", type: "text" },
           { name: "country", label: "Country", type: "text" },
           { name: "phone", label: "Phone", type: "text" },
-          { name: "email", label: "Email", type: "email" },
+          { name: "Website", label: "Website", type: "text" },
           { name: "vatNumber", label: "VAT Number", type: "text" },
           { name: "gstNumber", label: "GST Number", type: "text" },
           { name: "clientGroups", label: "Client Groups", type: "text" },
-          { name: "currency", label: "Currency", type: "text" },
+          { name: "currency", label: "Currency", type: "select", options: [] },
           { name: "currencySymbol", label: "Currency Symbol", type: "text" },
-          { name: "labels", label: "Labels", type: "text" },
+          { name: "labels", label: "Labels", type: "select", options: labelsList },
           { name: "disablePayment", label: "Disable Online Payment", type: "checkbox" },
         ]}
         formData={formData}
@@ -421,6 +560,7 @@ const ClientPage = () => {
         onClose={() => setIsManageOpen(false)}
         labelsList={labelsList}
         setLabelsList={setLabelsList}
+        context={context}
       />
     </div>
   );

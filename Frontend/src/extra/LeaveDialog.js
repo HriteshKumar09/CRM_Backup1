@@ -26,7 +26,7 @@ const LeaveDialog = ({ open, onClose, onApplyLeave, options = [], selectedLeaveT
   const [hours, setHours] = useState("");
   const [reason, setReason] = useState("");
   const [file, setFile] = useState(null);
-  const [selectedTeamMember, setSelectedTeamMember] = useState(null); // ✅ Added missing state
+  const [selectedTeamMember, setSelectedTeamMember] = useState(null);
 
   useEffect(() => {
     setLeaveType(selectedLeaveType ? selectedLeaveType.value : "");
@@ -34,11 +34,11 @@ const LeaveDialog = ({ open, onClose, onApplyLeave, options = [], selectedLeaveT
 
   useEffect(() => {
     if (isAssigning) {
-      setSelectedTeamMember(null); // ✅ Reset team member when switching modes
+      setSelectedTeamMember(null);
     }
-  }, [isAssigning]); // ✅ Fixed missing dependency
+  }, [isAssigning]);
 
-  const handleApplyLeave = () => {
+  const handleSubmit = () => {
     const leaveData = {
       leaveType,
       durationType,
@@ -48,7 +48,7 @@ const LeaveDialog = ({ open, onClose, onApplyLeave, options = [], selectedLeaveT
       hours,
       reason,
       file,
-      assignedTo: isAssigning ? selectedTeamMember : null, // ✅ Include team member when assigning
+      assignedTo: isAssigning ? selectedTeamMember : null,
     };
     onApplyLeave(leaveData);
     onClose();

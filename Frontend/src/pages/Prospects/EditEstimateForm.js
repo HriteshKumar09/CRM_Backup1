@@ -1,120 +1,183 @@
-import api from "../../Services/api.js";  // ✅ Remove if not needed
-import React, { useState, useRef, useEffect } from "react";
-import { PlusCircle, Edit, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import api from "../../Services/api.js";
+import PageNavigation from "../../extra/PageNavigation.js";
+import { FiSave } from "react-icons/fi";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const EditEstimate = ({
-  title = "Edit Estimate",
-  subtitle = "",
-  className = "",
-  label = "Estimate Name",
-  required = false,
-  onChange,
-  value = "",   // ✅ Allow parent to pass a default value
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentValue, setCurrentValue] = useState(value);
-  const inputRef = useRef(null);
+const EditEstimateForm = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    status: "Active",
+    assigned_to: "",
+    public: false,
+    enable_attachment: false
+  });
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
+    const fetchFormData = async () => {
+      try {
+        const response = await api.get(`/estimate/forms/${id}`);
+        if (response.data.success) {
+          setFormData(response.data.form);
+        } else {
+          toast.error("Failed to fetch form data");
+        }
+      } catch (error) {
+        console.error("Error fetching form:", error);
+        toast.error(error.response?.data?.message || "Failed to fetch form data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchFormData();
     }
-  }, [isEditing]);
-
-  const handleClick = () => {
-    if (!isEditing) {
-      setIsEditing(true);
-    }
-  };
-
-  const handleBlur = () => {
-    setIsEditing(false);
-    if (onChange && currentValue.trim() !== "") onChange(currentValue);  // ✅ Prevent saving empty values
-  };
-
-  const handleCancel = (e) => {
-    e.stopPropagation();
-    setCurrentValue(value);  // ✅ Reset to original value when canceled
-    setIsEditing(false);
-  };
+  }, [id]);
 
   const handleChange = (e) => {
-    setCurrentValue(e.target.value);
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleBlur();
-    } else if (e.key === "Escape") {
-      setCurrentValue(value);  // ✅ Reset value on Escape
-      setIsEditing(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.put(`/estimate/forms/${id}`, formData);
+      if (response.data.success) {
+        toast.success("Form updated successfully");
+        navigate("/dashboard/Prospects-Estimate Forms");
+      } else {
+        toast.error("Failed to update form");
+      }
+    } catch (error) {
+      console.error("Error updating form:", error);
+      toast.error(error.response?.data?.message || "Failed to update form");
     }
   };
 
-  const handleAddField = () => {
-    console.log("Add field clicked");
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`w-full max-w-2xl mx-auto px-6 py-10 ${className}`}>
-      {/* Title and Subtitle */}
-      <div className="space-y-2 mb-8">
-        <h1 className="text-3xl font-medium tracking-tight">{title}</h1>
-        {subtitle && <p className="text-gray-500">{subtitle}</p>}
-      </div>
+    <div className="p-6">
+      <ToastContainer position="top-right" autoClose={3000} />
+      
+      <PageNavigation
+        title="Edit Estimate Form"
+        buttons={[
+          {
+            label: "Save Changes",
+            icon: FiSave,
+            onClick: handleSubmit
+          }
+        ]}
+      />
 
-      {/* Editable Field */}
-      <div
-        className={`group relative rounded-lg border border-gray-300 bg-white p-4 ${
-          isEditing ? "ring-2 ring-blue-500" : "hover:border-blue-500 cursor-pointer"
-        }`}
-        onClick={handleClick}
-      >
-        <div className="flex items-start justify-between">
-          <label className="text-sm font-medium text-gray-600">
-            {label} {required && <span className="text-red-500 ml-1">*</span>}
-          </label>
-          {isEditing ? (
+      <div className="mt-6 bg-white rounded-lg shadow p-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Title</label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={4}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Status</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Assigned To</label>
+            <input
+              type="text"
+              name="assigned_to"
+              value={formData.assigned_to}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              name="public"
+              checked={formData.public}
+              onChange={handleChange}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label className="ml-2 block text-sm text-gray-700">Public</label>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              name="enable_attachment"
+              checked={formData.enable_attachment}
+              onChange={handleChange}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label className="ml-2 block text-sm text-gray-700">Enable Attachment</label>
+          </div>
+
+          <div className="flex justify-end space-x-3">
             <button
               type="button"
-              onClick={handleCancel}
-              className="rounded-full p-1 text-gray-600 hover:bg-gray-200"
+              onClick={() => navigate("/dashboard/Prospects-Estimate Forms")}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <X size={14} />
+              Cancel
             </button>
-          ) : (
-            <Edit size={14} className="text-gray-600 opacity-0 group-hover:opacity-100" />
-          )}
-        </div>
-
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={currentValue}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1 focus:border-blue-500"
-          />
-        ) : (
-          <p className="mt-1 truncate text-base text-gray-700">
-            {currentValue || <span className="text-gray-400 italic">Click to edit</span>}
-          </p>
-        )}
+            <button
+              type="submit"
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
       </div>
-
-      {/* Add Field Button */}
-      <button
-        type="button"
-        onClick={handleAddField}
-        className="w-full flex items-center justify-center gap-2 mt-6 py-4 rounded-lg border border-dashed border-gray-300 text-gray-500 hover:text-black hover:border-blue-500"
-      >
-        <PlusCircle size={18} />
-        <span>Add field</span>
-      </button>
     </div>
   );
 };
 
-export default EditEstimate;
+export default EditEstimateForm;

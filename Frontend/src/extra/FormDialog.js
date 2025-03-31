@@ -64,53 +64,46 @@ const FormDialog = ({
                   {/* Input Types */}
                   {field.type === "select" ? (
                     <Select
-                    options={field.options || []} // Default to empty array if options is not an array
-                    value={field.options && Array.isArray(field.options) && field.options.find(option => option.value === formData[field.name]) || null}
-                    onChange={(selectedOption) =>
-                      handleChange({
-                        target: { name: field.name, value: selectedOption ? selectedOption.value : "" },
-                      })
-                    }
-                    className="w-full mt-1"
-                    placeholder={`Select ${field.label}`}
-                    styles={{
-                      control: (base, { isFocused }) => ({
-                        ...base,
-                        backgroundColor: "var(--tw-bg-opacity) 1F2937", // Dark: bg-gray-800
-                        borderColor: isFocused ? "#60a5fa" : "#4B5563", // Dark: border-gray-600, focus:border-blue-400
-                        color: "#E5E7EB", // Dark: text-gray-300
-                        "&:hover": {
-                          borderColor: "#60a5fa", // Dark: border-blue-400
-                        },
-                      }),
-                      menu: (base) => ({
-                        ...base,
-                        backgroundColor: "#1F2937", // Dark: bg-gray-800
-                        color: "#E5E7EB", // Dark: text-gray-300
-                      }),
-                      singleValue: (base) => ({
-                        ...base,
-                        color: "#E5E7EB", // Dark: text-gray-300
-                      }),
-                      option: (base, { isFocused, isSelected }) => ({
-                        ...base,
-                        backgroundColor: isSelected
-                          ? "#3B82F6" // Selected: blue-500
-                          : isFocused
-                          ? "#374151" // Hover: gray-700
-                          : "#1F2937", // Default: gray-800
-                        color: isSelected ? "#FFFFFF" : "#E5E7EB", // Selected text: white, Default: gray-300
-                        "&:hover": {
-                          backgroundColor: "#374151", // Hover: gray-700
-                        },
-                      }),
-                      placeholder: (base) => ({
-                        ...base,
-                        color: "#9CA3AF", // Dark: text-gray-400
-                      }),
-                    }}
-                  />
-                  
+                      options={field.options || []} // Default to empty array if options is not an array
+                      value={(field.options && Array.isArray(field.options) && field.options.find(option => option.value === formData[field.name])) || null}
+                      onChange={(selectedOption) =>
+                        handleChange({
+                          target: { name: field.name, value: selectedOption ? selectedOption.value : "" },
+                        })
+                      }
+                      className="w-full mt-1"
+                      placeholder={`Select ${field.label}`}
+                      styles={{
+                        control: (base, { isFocused }) => ({
+                          ...base,
+                          backgroundColor: "var(--tw-bg-opacity) 1F2937", // Dark: bg-gray-800
+                          borderColor: isFocused ? "#60a5fa" : "#4B5563", // Dark: border-gray-600, focus:border-blue-400
+                          color: "#E5E7EB", // Dark: text-gray-300
+                          "&:hover": {
+                            borderColor: "#60a5fa", // Dark: border-blue-400
+                          },
+                        }),
+                        menu: (base) => ({
+                          ...base,
+                          backgroundColor: "#1F2937", // Dark: bg-gray-800
+                          color: "#E5E7EB", // Dark: text-gray-300
+                        }),
+                        singleValue: (base) => ({
+                          ...base,
+                          color: "#E5E7EB", // Dark: text-gray-300
+                        }),
+                        option: (base, { isFocused, isSelected }) => ({
+                          ...base,
+                          backgroundColor: isSelected
+                            ? "#3B82F6" // Selected: blue-500
+                            : (isFocused ? "#374151" : "#1F2937"), // Hover: gray-700, Default: gray-800
+                          color: "#E5E7EB", // Dark: text-gray-300
+                          "&:hover": {
+                            backgroundColor: "#374151", // Dark: gray-700
+                          },
+                        }),
+                      }}
+                    />
                   ) : field.type === "radio" ? (
                     <div className="flex flex-col mt-1">
                       {field.options.map((option) => (

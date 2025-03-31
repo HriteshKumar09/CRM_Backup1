@@ -3,14 +3,42 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { Pie, Line } from 'react-chartjs-2';
 import {
-  Chart as ChartJS,  ArcElement,  Tooltip,  Legend,  CategoryScale,  LinearScale,
-  PointElement,  LineElement,  Title
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title
 } from 'chart.js';
 import {
-  Heart,  CheckSquare,  DollarSign,  TrendingUp,  Clock,  ArrowUp,
-  Vote,  Box,  MessageSquare,  Eye,  EyeOff,  FileText,  FolderKanban,  Grid,  BarChart3,  PieChart,  Ticket,  StickyNote,  CheckCircle,  AlertCircle,
-  Users,  UserPlus,  Briefcase,
-    Calendar} from 'lucide-react';
+  Heart,
+  CheckSquare,
+  DollarSign,
+  TrendingUp,
+  Clock,
+  ArrowUp,
+  Vote,
+  Box,
+  MessageSquare,
+  Eye,
+  EyeOff,
+  FileText,
+  FolderKanban,
+  Grid,
+  BarChart3,
+  PieChart,
+  Ticket,
+  StickyNote,
+  CheckCircle,
+  AlertCircle,
+  Users,
+  UserPlus,
+  Briefcase,
+  Calendar
+} from 'lucide-react';
 import api from '../Services/api';
 import { toast } from 'react-toastify';
 import ReactCalendar from 'react-calendar';
@@ -56,15 +84,6 @@ const Dashboard = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const calendarRef = useRef(null);
-
-  // Add effect to handle dark mode changes
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -323,7 +342,7 @@ const Dashboard = () => {
     <div className={`p-4 space-y-6 ${darkMode ? 'dark' : ''}`}>
       {/* Clock In/Out Section - Enhanced */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transform transition-all duration-300 hover:shadow-xl border border-gray-100 dark:border-gray-700">
-          <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div>
             <h2 className={`text-2xl font-bold ${styles.gradientText}`}>Time Tracking</h2>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Track your work hours</p>
@@ -333,7 +352,7 @@ const Dashboard = () => {
               <>
                 <div className="text-3xl font-mono font-bold text-blue-500 dark:text-blue-400 animate-pulse">
                   {elapsedTime}
-            </div>
+                </div>
                 <button
                   onClick={handleClockOut}
                   className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
@@ -404,7 +423,7 @@ const Dashboard = () => {
           onClick={() => navigate('/dashboard/tasks')}
           className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-xl p-6 shadow-md cursor-pointer ${styles.cardHover}`}
         >
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Active Tasks</h3>
               <p className="text-3xl font-bold mt-1 bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-indigo-500">
@@ -421,7 +440,7 @@ const Dashboard = () => {
               {dashboardData.tasks.inProgress} In Progress
             </span>
           </div>
-              </div>
+        </div>
 
         {/* Revenue Box */}
         <div 
@@ -434,7 +453,7 @@ const Dashboard = () => {
               <p className="text-3xl font-bold mt-1 bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-green-500">
                 ${dashboardData.income.reduce((a, b) => a + b, 0).toLocaleString()}
               </p>
-              </div>
+            </div>
             <div className="bg-gradient-to-br from-emerald-400 to-green-500 p-4 rounded-lg shadow-lg">
               <DollarSign className="text-white" size={24} />
             </div>
@@ -453,7 +472,7 @@ const Dashboard = () => {
           onClick={() => navigate('/dashboard/team')}
           className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-xl p-6 shadow-md cursor-pointer ${styles.cardHover}`}
         >
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Team Members</h3>
               <p className="text-3xl font-bold mt-1 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-500">
@@ -464,8 +483,8 @@ const Dashboard = () => {
               <Users className="text-white" size={24} />
             </div>
           </div>
-              </div>
-              </div>
+        </div>
+      </div>
 
       {/* Scrollable Data Boxes Section - Enhanced */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -499,7 +518,7 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
-              </div>
+        </div>
 
         {/* Projects Box */}
         <div 
@@ -529,7 +548,7 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
-      </div>
+        </div>
 
         {/* Clients Box */}
         <div 
@@ -736,7 +755,7 @@ const Dashboard = () => {
                   }
                 }}
               />
-                  </div>
+            </div>
             {/* Project Status Summary */}
             <div className="mt-4 grid grid-cols-2 gap-4">
               {Object.entries(projectsData).map(([status, count], index) => (
@@ -831,9 +850,9 @@ const Dashboard = () => {
                 value={selectedDate}
                 className={`${darkMode ? 'dark-calendar' : ''} rounded-lg overflow-hidden shadow-inner`}
               />
-                  </div>
+            </div>
           )}
-                  </div>
+        </div>
 
         {/* Messages Quick Action */}
         <div 
@@ -843,7 +862,7 @@ const Dashboard = () => {
           <div className="flex items-center space-x-4">
             <div className="bg-gradient-to-br from-purple-400 to-indigo-500 p-4 rounded-lg shadow-lg">
               <MessageSquare className="text-white" size={24} />
-                </div>
+            </div>
             <div>
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">Messages</h3>
               <p className="text-xs text-gray-500">View recent messages</p>
@@ -876,7 +895,7 @@ const Dashboard = () => {
             <div className="bg-gradient-to-br from-orange-400 to-yellow-500 p-4 rounded-lg shadow-lg">
               <Ticket className="text-white" size={24} />
             </div>
-                  <div>
+            <div>
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">Tickets</h3>
               <p className="text-xs text-gray-500">View support tickets</p>
             </div>
@@ -908,9 +927,9 @@ const Dashboard = () => {
             </div>
             <div className={`p-3 rounded-lg ${styles.iconGradient}`}>
               <Box size={24} />
-                </div>
-                </div>
-              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Events Overview */}
         <div className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-xl p-6 shadow-md ${styles.cardHover}`}>
@@ -921,10 +940,10 @@ const Dashboard = () => {
             </div>
             <div className={`p-3 rounded-lg ${styles.iconGradient}`}>
               <Calendar size={24} />
-                </div>
-              </div>
-                </div>
-              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Status Indicators - Enhanced */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -946,7 +965,7 @@ const Dashboard = () => {
           <div className="flex items-center space-x-4">
             <div className={`p-3 rounded-lg ${styles.iconGradient}`}>
               <AlertCircle size={24} />
-              </div>
+            </div>
             <div>
               <h3 className={`text-sm font-medium text-gray-900 dark:text-white`}>Notifications</h3>
               <p className="text-xs text-gray-500">3 unread messages</p>
@@ -982,7 +1001,7 @@ const Dashboard = () => {
             <div className={`p-3 rounded-lg ${styles.iconGradient}`}>
               <UserPlus size={24} />
             </div>
-                  <div>
+            <div>
               <h3 className={`text-sm font-medium text-gray-900 dark:text-white`}>Add Member</h3>
               <p className="text-xs text-gray-500">Invite new team member</p>
             </div>

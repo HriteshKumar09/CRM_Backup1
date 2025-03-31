@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../Services/api";
-import { useEffect } from "react";
-import { jwtDecode } from "jwt-decode"; // Import jwtDecode directly
+import { jwtDecode } from "jwt-decode";
 import { LuBook } from "react-icons/lu";
 import { PiMinusThin } from "react-icons/pi";
 import { IoMdPeople, IoMdSettings } from 'react-icons/io'; // Team icon
@@ -50,23 +49,22 @@ const Sidebar = ({ selectedColor, isCollapsed }) => {
     };
 
     fetchRoles();
-  }, []);
+  }, []); // Empty dependency array since we only want to fetch once on mount
 
-   // Decode the JWT token to get the user's role_id
- const token = localStorage.getItem("token");
- const decodeToken = (token) => {
-   try {
-     const decoded = jwtDecode(token);
-     return decoded;
-   } catch (error) {
-     console.error("Error decoding token:", error);
-     return null;
-   }
+  // Decode the JWT token to get the user's role_id
+  const token = localStorage.getItem("token");
+  const decodeToken = (token) => {
+    try {
+      const decoded = jwtDecode(token);
+      return decoded;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
   };
   const user = decodeToken(token);
   const roleId = user?.role_id; // Extract role_id from the token
 
-  
   // Sidebar items configuration
   const sidebarItems = [
     { name: "Dashboard", path: "/dashboard", icon: <LuTvMinimal /> },
@@ -81,6 +79,49 @@ const Sidebar = ({ selectedColor, isCollapsed }) => {
         { name: " Settings", path: "/dashboard/riseguard-settings", icon: <PiMinusThin /> },
       ]
     },
+    {
+      name: "Marketing Automation",
+      icon: <RiHashtag />,
+      roles: [roles.ADMIN], // Only admin can access
+      subItems: [
+        { name: "Dashboard", path: "/dashboard/Marketing-Dashboard", icon: <PiMinusThin /> },
+        { name: "Segments", path: "/dashboard/Marketing-Segments", icon: <PiMinusThin /> },
+        { name: "Components", path: "/dashboard/Marketing-Components", icon: <PiMinusThin /> },
+        { name: "Campaigns", path: "/dashboard/Marketing-Campaigns", icon: <PiMinusThin /> },
+        { name: "Channels", path: "/dashboard/Marketing-Channels", icon: <PiMinusThin /> },
+        { name: "Points", path: "/dashboard/Marketing-Points", icon: <PiMinusThin /> },
+        { name: "Stages", path: "/dashboard/Marketing-Stages", icon: <PiMinusThin /> },
+        { name: "Reports", path: "/dashboard/Marketing-Reports", icon: <PiMinusThin /> },
+        { name: "Settings", path: "/dashboard/Marketing-Settings", icon: <PiMinusThin /> },
+      ]
+
+    },
+    {
+      name: "Accounting",
+      icon: <LuBook />,
+      roles: [roles.ADMIN], // Only admin can access
+      subItems: [
+        { name: "Dashboard", path: "/dashboard/Accounting-Dashboard", icon: <PiMinusThin /> },
+        { name: "Banking", path: "/dashboard/Accounting-Banking", icon: <PiMinusThin /> },
+        { name: "Transactions", path: "/dashboard/Accounting-Transactions", icon: <PiMinusThin /> },
+        { name: "Journal Entry", path: "/dashboard/Accounting-Journal Entry", icon: <PiMinusThin /> },
+        { name: "Transfer", path: "/dashboard/Accounting-Transfer", icon: <PiMinusThin /> },
+        { name: "Chart of Accounts", path: "/dashboard/Accounting-Chart", icon: <PiMinusThin /> },
+      ]
+
+    },
+    {
+      name: "Sales Agent",
+      icon: <GoPerson />,
+      roles: [roles.ADMIN], // Only admin can access
+      subItems: [
+        { name: "Dashboard", path: "/dashboard/Sales-Dashboard", icon: <PiMinusThin /> },
+        { name: "Management", path: "/dashboard/Sales-Management", icon: <PiMinusThin /> },
+        { name: "Programs", path: "/dashboard/Sales-Programs", icon: <PiMinusThin /> },
+        { name: "Orders", path: "/dashboard/Sales-Orders", icon: <PiMinusThin /> },
+        { name: "Settings", path: "/dashboard/Sales-Settings", icon: <PiMinusThin /> },
+      ]
+    },
     { name: "Polls", path: "/dashboard/polls", icon: <FiBarChart2 /> },
     {
       name: "Recruitments",
@@ -89,6 +130,17 @@ const Sidebar = ({ selectedColor, isCollapsed }) => {
       subItems: [
         { name: "Circulars", path: "/dashboard/Recruitments-Circulars", icon: <PiMinusThin /> },
         { name: " Candidates", path: "/dashboard/Recruitments-Candidates", icon: <PiMinusThin /> },
+      ]
+    },
+     {
+      name: "Flexiblebackup",
+      icon: <LuCloudDownload />,
+      roles: [roles.ADMIN,roles.STAFF], // Only admin can access
+      subItems: [
+        { name: "Stored Backups", path: "/dashboard/Flexiblebackup-Stored Backups", icon: <PiMinusThin /> },
+        { name: "Upcoming Backup", path: "/dashboard/Flexiblebackup-Upcoming Backup", icon: <PiMinusThin /> },
+        { name: "Settings", path: "/dashboard/Flexiblebackup-Settings", icon: <PiMinusThin /> },
+        { name: "Backup", path: "/dashboard/Flexiblebackup-Backup", icon: <PiMinusThin /> },
       ]
     },
     { name: "Clients", path: "/dashboard/clients", icon: <FiBriefcase />, roles: [27] }, // Only admin can access
@@ -147,7 +199,27 @@ const Sidebar = ({ selectedColor, isCollapsed }) => {
     { name: "Tasks", path: "/dashboard/tasks", icon: <IoMdCheckmarkCircleOutline />, roles: [27, 28] }, // Both admin and staff can access
     { name: "Assets", path: "/dashboard/Assets", icon: <FiDatabase />, roles: [27] }, // Only admin can access
     { name: "Banner Manager", path: "/dashboard/Banner Manager", icon: <FaChromecast />, roles: [27] }, // Only admin can access
-    { name: "Leads", path: "/dashboard/Leads", icon: <FiLayers />, roles: [27] },
+    { name: "Leads", path: "/dashboard/Leads", icon: <FiLayers />, roles: [27] }, // Only admin can access
+    {
+      name: "Manufacturing",
+      icon: <FiInbox />,
+      roles: [roles.ADMIN], // Only admin can access
+      subItems: [
+        { name: "Dashboard", path: "/dashboard/Manufacturing-Dashboard", icon: <PiMinusThin /> },
+        { name: "Products", path: "/dashboard/Manufacturing-Products", icon: <PiMinusThin /> },
+        { name: "Product variants", path: "/dashboard/Manufacturing-Product variants", icon: <PiMinusThin /> },
+        { name: "Bills of materials", path: "/dashboard/Manufacturing-Bills of materials", icon: <PiMinusThin /> },
+        { name: "Routings", path: "/dashboard/Manufacturing-Routings", icon: <PiMinusThin /> },
+        { name: "Work centers", path: "/dashboard/Manufacturing-Work centers", icon: <PiMinusThin /> },
+        { name: "Manufacturing orders", path: "/dashboard/Manufacturing-Manufacturing orders", icon: <PiMinusThin /> },
+        { name: "Work orders", path: "/dashboard/Manufacturing-Work orders", icon: <PiMinusThin /> },
+        { name: "Settings", path: "/dashboard/Manufacturing-Settings", icon: <PiMinusThin /> },
+      ]
+    },
+    { name: "Subscriptions", 
+      path: "/dashboard/Subscriptions",
+      roles: [roles.ADMIN], // Only admin can access
+       icon: <FiRepeat /> },
     {
       name: "Sales",
       icon: <FiShoppingCart />,
@@ -188,7 +260,7 @@ const Sidebar = ({ selectedColor, isCollapsed }) => {
     },
     { name: "Tickets", path: "/dashboard/Tickets", icon: <FiLifeBuoy />, roles: [27, 28] }, // Both admin and staff can access
     { name: "Expenses", path: "/dashboard/Expenses", icon: <FaArrowCircleRight />, roles: [27] }, // Only admin can access
-    { name: "Reports", path: "/dashboard/Reports", icon: <FiPieChart />, roles: [27, 28] },
+    { name: "Reports", path: "/dashboard/Reports", icon: <FiPieChart />, roles: [27, 28] }, // Both admin and staff can access
     {
       name: "Help & Support",
       icon: <IoMdHelpCircle />,
@@ -202,10 +274,11 @@ const Sidebar = ({ selectedColor, isCollapsed }) => {
         { name: "Categories", path: "/dashboard/help/knowledge_base_category", icon: <PiMinusThin /> },
       ],
     },
-    { name: "Settings", path: "/dashboard/settings",
-       icon: <IoMdSettings />, 
-       roles: [roles.ADMIN],
-     } // Only admin can access
+    { name: "Settings", 
+      path: "/dashboard/settings/general",
+      icon: <IoMdSettings />, 
+      roles: [roles.ADMIN],
+    } // Only admin can access
   ];
 
    // Filter sidebar items based on the user's role

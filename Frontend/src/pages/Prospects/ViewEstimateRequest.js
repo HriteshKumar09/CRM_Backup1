@@ -6,17 +6,17 @@ import { useLocation } from 'react-router-dom';
 import FormDialog from '../../extra/FormDialog.js';
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 
-const EstimateRequest = ({ estimateNumber }) => {
+const ViewEstimateRequest = () => {
     const [status, setStatus] = useState(''); // Default status
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [clientOptions, setClientOptions] = useState([]);
     const [selectedClient, setSelectedClient] = useState(null);
     const [createdDate, setCreatedDate] = useState(''); // ✅ Created Date state
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [openSingleEstimate, setOpenSingleEstimate] = useState(false);
-    const [selectedEstimate, setSelectedEstimate] = useState(false);
+    const [selectedEstimate, setSelectedEstimate] = useState(null);
+    const [estimate, setEstimate] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     // ✅ Get clientId from URL
     const location = useLocation();
@@ -39,6 +39,7 @@ const EstimateRequest = ({ estimateNumber }) => {
     };
 
     const handleOpenEditForm = (request) => {
+        setSelectedEstimate(request);
         setEstimateData({
             assigned: request.assigned || "",
         });
@@ -85,38 +86,31 @@ const EstimateRequest = ({ estimateNumber }) => {
             try {
                 const response = await api.get('/clients');
                 if (response.data.success) {
-                    const mappedClients = response.data.data.map((client) => ({
-                        value: client.id,
-                        label: client.company_name,
-                    }));
-                    setClientOptions(mappedClients);
-
-                    // ✅ Set selected client if found in the list
-                    const foundClient = mappedClients.find(client => client.value === parseInt(clientId));
+                    // Set selected client if found in the list
+                    const foundClient = response.data.data.find(client => client.id === parseInt(clientId));
                     if (foundClient) {
-                        setSelectedClient(foundClient.label);
+                        setSelectedClient(foundClient.company_name);
                     }
-                } else {
-                    setError('Failed to fetch clients. Please try again.');
                 }
             } catch (err) {
                 console.error('Error fetching clients:', err);
-                setError('Could not load clients.');
             }
         };
 
         const fetchEstimateDetails = async () => {
             try {
-                const response = await api.get(`/estimates/${estimateNumber}`); // Fetch estimate details
+                setLoading(true);
+                setError(null);
+                const response = await api.get('/estimate-request');
                 if (response.data.success) {
-                    setStatus(response.data.data.status); // ✅ Update status from API
-                    setCreatedDate(new Date(response.data.data.created_at).toLocaleDateString()); // ✅ Format date properly
+                    setStatus(response.data.data.status);
+                    setCreatedDate(new Date(response.data.data.created_at).toLocaleDateString());
+                    setEstimate(response.data.estimate);
                 } else {
-                    setError('Failed to fetch estimate details.');
+                    setError('Failed to fetch estimate request');
                 }
             } catch (err) {
-                console.error('Error fetching estimate details:', err);
-                setError('Could not load estimate details.');
+                setError(err.message || 'An error occurred');
             } finally {
                 setLoading(false);
             }
@@ -124,14 +118,22 @@ const EstimateRequest = ({ estimateNumber }) => {
 
         fetchClients();
         fetchEstimateDetails();
-    }, [clientId, estimateNumber]);
+    }, [clientId]);
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between relative">
                 <h2 className="text-2xl font-medium text-gray-800">
-                    Estimate Request # {estimateNumber}
+                    Estimate Request # {estimate?.number}
                 </h2>
 
                 {/* ✅ Dropdown Button */}
@@ -239,4 +241,4 @@ const EstimateRequest = ({ estimateNumber }) => {
     );
 };
 
-export default EstimateRequest;
+export default ViewEstimateRequest;

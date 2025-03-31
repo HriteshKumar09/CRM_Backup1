@@ -17,8 +17,8 @@ const Note = {
                 noteData.description || "",
                 noteData.project_id || 1,
                 noteData.client_id || 1,
-                noteData.labels || null,
-                noteData.files || null
+                noteData.labels || "",
+                noteData.files || "" // Changed from null to empty string
             ];
 
             db.query(query, values, (err, result) => {
