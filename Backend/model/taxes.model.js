@@ -41,3 +41,52 @@ export const createTax = ({ title, percentage }) => {
     });
   });
 };
+
+// Update an existing tax
+export const updateTax = ({ id, title, percentage }) => {
+  return new Promise((resolve, reject) => {
+    const query = `UPDATE _taxes SET title = ?, percentage = ? WHERE id = ? AND deleted = 0`;
+    
+    db.query(query, [title, percentage, id], (err, result) => {
+      if (err) {
+        console.error("❌ Error updating tax:", err);
+        return reject(err);
+      }
+
+      if (result.affectedRows === 0) {
+        return reject(new Error("Tax not found or already deleted"));
+      }
+
+      // Fetch the updated tax
+      const selectQuery = `SELECT id, title, percentage, stripe_tax_id FROM _taxes WHERE id = ?`;
+      db.query(selectQuery, [id], (err, rows) => {
+        if (err) {
+          console.error("❌ Error fetching updated tax:", err);
+          return reject(err);
+        }
+
+        resolve(rows[0]); // Return the updated tax object
+      });
+    });
+  });
+};
+
+// Delete a tax (soft delete)
+export const deleteTax = (id) => {
+  return new Promise((resolve, reject) => {
+    const query = `UPDATE _taxes SET deleted = 1 WHERE id = ? AND deleted = 0`;
+    
+    db.query(query, [id], (err, result) => {
+      if (err) {
+        console.error("❌ Error deleting tax:", err);
+        return reject(err);
+      }
+
+      if (result.affectedRows === 0) {
+        return reject(new Error("Tax not found or already deleted"));
+      }
+
+      resolve({ success: true, message: "Tax deleted successfully" });
+    });
+  });
+};

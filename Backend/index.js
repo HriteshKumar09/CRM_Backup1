@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import fileUpload from 'express-fileupload';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config(); // ✅ Load environment variables at the very top
 
@@ -40,8 +41,25 @@ import companyRoutes from "./routes/company.routes.js"; // Add company routes
 import paymentMethodsRoutes from "./routes/paymentMethods.route.js"; // Add payment methods routes
 import leaveTypesRoutes from "./routes/leaveTypes.route.js"; // Add leave types routes
 import expenseCategoriesRoutes from './routes/expenseCategories.route.js'; // Add expense categories routes
+import checklistRoutes from './routes/checklist.route.js'; // Add checklist routes
+import subscriptionRoutes from './routes/subscriptions.route.js'; // Import subscription routes
 
 const app = express(); 
+
+// Create rate limiter
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per 15 minutes
+    message: {
+        success: false,
+        message: "Too many requests from this IP, please try again after 15 minutes"
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false // Disable the `X-RateLimit-*` headers
+});
+
+// Apply rate limiting
+app.use(limiter);
 
 // ✅ Middleware to parse JSON request bodies
 app.use(express.json());
@@ -98,23 +116,32 @@ app.use('/api', taxesRoutes);
 app.use('/api', expenseRoutes);
 app.use("/api", ticketRoutes);
 app.use("/api/estimate", estimateRoutes); // ✅ New route for estimates
+app.use('/api/checklist', checklistRoutes); // Add checklist routes
 app.use('/api/notifications', notificationsRoutes);
 app.use("/api/settings/roles", roleRoutes); // Correct path for role management
 app.use('/api/items', itemRoutes);  // All item-related and category-related routes
 app.use('/api/blacklist', blacklistRoutes);
 app.use('/api/blocked-ips', blockedIPsRoutes);
 app.use('/api/settings', settingsRoutes); // Add settings routes
-// Mount company routes under settings
 app.use('/api/settings/company', companyRoutes);
 app.use('/api/payment-methods', paymentMethodsRoutes); // Updated path for payment methods routes
 app.use('/api/leave-types', leaveTypesRoutes); // Add leave types routes
 app.use('/api', expenseCategoriesRoutes); // Add expense categories routes
+app.use('/api/subscriptions', subscriptionRoutes); // Add subscription routes
 
 // ✅ Protected Routes (Example)
 app.get('/dashboard', authenticate, (req, res) => {
     res.status(200).json({
         message: "Welcome to the dashboard!",
         user: req.user, 
+    });
+});
+
+// Add 404 handler for undefined routes
+app.use((req, res) => {
+    res.status(404).json({ 
+        success: false, 
+        message: `Route ${req.originalUrl} not found` 
     });
 });
 

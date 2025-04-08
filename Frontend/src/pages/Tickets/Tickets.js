@@ -344,21 +344,21 @@ const Tickets = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 dark:bg-gray-800">
       <ToastContainer position="top-right" />
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-semibold">Tickets</h1>
+          <h1 className="text-2xl font-semibold dark:text-white">Tickets</h1>
           <div className="flex space-x-2">
             <button 
-              className={`px-4 py-2 ${activeLabel === 'list' ? 'border-b-2 border-blue-500' : ''}`}
+              className={`px-4 py-2 ${activeLabel === 'list' ? 'border-b-2 border-blue-500 dark:border-blue-400' : 'dark:text-gray-300'}`}
               onClick={() => handleOpenTab('list')}
             >
               Tickets list
             </button>
             <button 
-              className={`px-4 py-2 ${activeLabel === 'templates' ? 'border-b-2 border-blue-500' : ''}`}
+              className={`px-4 py-2 ${activeLabel === 'templates' ? 'border-b-2 border-blue-500 dark:border-blue-400' : 'dark:text-gray-300'}`}
               onClick={() => handleOpenTab('templates')}
             >
               Ticket templates
@@ -370,12 +370,14 @@ const Tickets = () => {
             startIcon={<FiTag />}
             variant="outlined"
             onClick={() => setIsManageOpen(true)}
+            className="dark:text-white dark:border-gray-600"
           >
             Manage labels
           </Button>
           <Button
             startIcon={<FiSettings />}
             variant="outlined"
+            className="dark:text-white dark:border-gray-600"
           >
             Settings
           </Button>
@@ -396,7 +398,7 @@ const Tickets = () => {
       </div>
 
       {/* Controls */}
-      <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow">
+      <div className="flex justify-between items-center p-4 bg-white dark:bg-gray-700 rounded-lg shadow">
         <div className="flex items-center space-x-4">
           <DropdownButton
             icon={LuColumns2}
@@ -404,10 +406,10 @@ const Tickets = () => {
             visibleItems={visibleColumns}
             toggleItem={(key) => setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }))}
           />
-          <button className="flex items-center space-x-1 px-3 py-2 border rounded-lg hover:bg-gray-50">
+          <button className="flex items-center space-x-1 px-3 py-2 border rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-600 dark:text-white">
             <FiPlus />
             <span>Add new filter</span>
-            </button>
+          </button>
         </div>
         <div className="flex items-center space-x-4">
           <TextField
@@ -415,72 +417,74 @@ const Tickets = () => {
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="dark:bg-gray-600 dark:text-white"
           />
         </div>
       </div>
 
       {/* Tickets Table */}
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
+      <div className="bg-white dark:bg-gray-700 rounded-lg shadow overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b">
+            <tr className="border-b dark:border-gray-600">
               {columns.map(column => 
-                  visibleColumns[column.key] && (
-                  <th key={column.key} className="px-4 py-2 text-left">
-                      {column.label}
-                    </th>
-                  )
+                visibleColumns[column.key] && (
+                  <th key={column.key} className="px-4 py-2 text-left dark:text-white">
+                    {column.label}
+                  </th>
+                )
               )}
-              <th className="px-4 py-2 text-left">Actions</th>
+              <th className="px-4 py-2 text-left dark:text-white">Actions</th>
             </tr>
           </thead>
           <tbody>
             {tickets.map(ticket => (
-              <tr key={ticket.id} className="border-b hover:bg-gray-50">
-                {visibleColumns.ticketId && <td className="px-4 py-2">Ticket #{ticket.id}</td>}
-                {visibleColumns.title && <td className="px-4 py-2">{ticket.title}</td>}
+              <tr key={ticket.id} className="border-b hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-600">
+                {visibleColumns.ticketId && <td className="px-4 py-2 dark:text-white">Ticket #{ticket.id}</td>}
+                {visibleColumns.title && <td className="px-4 py-2 dark:text-white">{ticket.title}</td>}
                 {visibleColumns.client && (
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 dark:text-white">
                     {clients.find(c => c.value === ticket.client_id)?.label || '-'}
                   </td>
                 )}
                 {visibleColumns.ticketType && (
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 dark:text-white">
                     {ticketTypes.find(t => t.value === ticket.ticket_type_id)?.label || '-'}
                   </td>
                 )}
                 {visibleColumns.assignedTo && (
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 dark:text-white">
                     {teamMembers.find(m => m.value === ticket.assigned_to)?.label || '-'}
                   </td>
                 )}
                 {visibleColumns.lastActivity && (
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 dark:text-white">
                     {new Date(ticket.last_activity_at).toLocaleString()}
                   </td>
                 )}
                 {visibleColumns.status && (
                   <td className="px-4 py-2">
                     <span className={`px-2 py-1 rounded-full text-sm ${
-                      ticket.status === 'new' ? 'bg-yellow-100 text-yellow-800' :
-                      ticket.status === 'closed' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
+                      ticket.status === 'new' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                      ticket.status === 'closed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
                     }`}>
                       {ticket.status}
                     </span>
-            </td>
+                  </td>
                 )}
                 <td className="px-4 py-2">
                   <IconButton
                     size="small"
                     onClick={(e) => handleOpenActions(e, ticket)}
+                    className="dark:text-white"
                   >
                     <FaWrench />
                   </IconButton>
-      </td>
-    </tr>
-  ))}
-</tbody>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
 
@@ -489,15 +493,16 @@ const Tickets = () => {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleCloseActions}
+        className="dark:bg-gray-700"
       >
-        <MenuItem onClick={handleEdit}>
-          <span className="text-gray-600">Edit</span>
+        <MenuItem onClick={handleEdit} className="dark:text-white">
+          <span className="text-gray-600 dark:text-gray-300">Edit</span>
         </MenuItem>
-        <MenuItem onClick={() => handleMarkAsClosed(selectedTicket.id)}>
-          <span className="text-gray-600">Mark as Closed</span>
+        <MenuItem onClick={() => handleMarkAsClosed(selectedTicket.id)} className="dark:text-white">
+          <span className="text-gray-600 dark:text-gray-300">Mark as Closed</span>
         </MenuItem>
-        <MenuItem onClick={() => handleDelete(selectedTicket.id)}>
-          <span className="text-red-600">Delete</span>
+        <MenuItem onClick={() => handleDelete(selectedTicket.id)} className="dark:text-white">
+          <span className="text-red-600 dark:text-red-400">Delete</span>
         </MenuItem>
       </Menu>
 
@@ -512,21 +517,23 @@ const Tickets = () => {
         }}
         maxWidth="sm"
         fullWidth
+        className="dark:bg-gray-800"
       >
-        <DialogTitle className="flex justify-between items-center border-b">
-          <span className="text-xl">{isEditMode ? 'Edit Ticket' : 'Add Ticket'}</span>
+        <DialogTitle className="flex justify-between items-center border-b dark:border-gray-600">
+          <span className="text-xl dark:text-white">{isEditMode ? 'Edit Ticket' : 'Add Ticket'}</span>
           <IconButton 
             onClick={() => setOpenSingleTicket(false)}
             size="small"
+            className="dark:text-white"
           >
             <IoClose />
           </IconButton>
         </DialogTitle>
-        <DialogContent className="py-4">
+        <DialogContent className="py-4 dark:bg-gray-800">
           <div className="space-y-4">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Title <span className="text-red-500">*</span>
               </label>
               <TextField
@@ -538,12 +545,13 @@ const Tickets = () => {
                 required
                 error={!ticketsData.title}
                 helperText={!ticketsData.title ? "Title is required" : ""}
+                className="dark:bg-gray-700 dark:text-white"
               />
             </div>
 
             {/* Client */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Client <span className="text-red-500">*</span>
               </label>
               <Autocomplete
@@ -559,15 +567,16 @@ const Tickets = () => {
                     required
                     error={!ticketsData.client}
                     helperText={!ticketsData.client ? "Client is required" : ""}
+                    className="dark:bg-gray-700 dark:text-white"
                   />
                 )}
               />
             </div>
 
-            {/* Project - New Field */}
+            {/* Project */}
             {ticketsData.client && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Project <span className="text-red-500">*</span>
                 </label>
                 <Autocomplete
@@ -584,6 +593,7 @@ const Tickets = () => {
                       required
                       error={!selectedProject}
                       helperText={!selectedProject ? "Project is required" : ""}
+                      className="dark:bg-gray-700 dark:text-white"
                     />
                   )}
                   noOptionsText="No projects available"
@@ -593,7 +603,7 @@ const Tickets = () => {
 
             {/* Requested by */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Requested by <span className="text-red-500">*</span>
               </label>
               <Autocomplete
@@ -609,6 +619,7 @@ const Tickets = () => {
                     required
                     error={!ticketsData.requestby}
                     helperText={!ticketsData.requestby ? "Requested By is required" : ""}
+                    className="dark:bg-gray-700 dark:text-white"
                   />
                 )}
               />
@@ -616,7 +627,7 @@ const Tickets = () => {
 
             {/* Ticket type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Ticket type <span className="text-red-500">*</span>
               </label>
               <Autocomplete
@@ -632,6 +643,7 @@ const Tickets = () => {
                     required
                     error={!ticketsData.ticket}
                     helperText={!ticketsData.ticket ? "Ticket Type is required" : ""}
+                    className="dark:bg-gray-700 dark:text-white"
                   />
                 )}
               />
@@ -639,7 +651,7 @@ const Tickets = () => {
 
             {/* Assign to */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Assign to <span className="text-red-500">*</span>
               </label>
               <Autocomplete
@@ -655,6 +667,7 @@ const Tickets = () => {
                     required
                     error={!ticketsData.assign}
                     helperText={!ticketsData.assign ? "Assignee is required" : ""}
+                    className="dark:bg-gray-700 dark:text-white"
                   />
                 )}
               />
@@ -662,7 +675,7 @@ const Tickets = () => {
 
             {/* Labels */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Labels</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Labels</label>
               <Autocomplete
                 size="small"
                 multiple
@@ -670,7 +683,7 @@ const Tickets = () => {
                 value={selectedLabels}
                 onChange={handleLabelChange}
                 getOptionLabel={(option) => option.label}
-                renderInput={(params) => <TextField {...params} placeholder="Labels" />}
+                renderInput={(params) => <TextField {...params} placeholder="Labels" className="dark:bg-gray-700 dark:text-white" />}
                 renderTags={(value, getTagProps) =>
                   value.map((option, index) => (
                     <Chip
@@ -685,11 +698,12 @@ const Tickets = () => {
             </div>
           </div>
         </DialogContent>
-        <DialogActions className="border-t p-4 flex justify-between">
+        <DialogActions className="border-t p-4 flex justify-between dark:border-gray-600 dark:bg-gray-800">
           <Button
             startIcon={<FiUpload />}
             variant="outlined"
             component="label"
+            className="dark:text-white dark:border-gray-600"
           >
             Upload File
             <input type="file" hidden />
@@ -698,6 +712,7 @@ const Tickets = () => {
             <Button 
               variant="outlined"
               onClick={() => setOpenSingleTicket(false)}
+              className="dark:text-white dark:border-gray-600"
             >
               Close
             </Button>

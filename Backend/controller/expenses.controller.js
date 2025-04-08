@@ -4,23 +4,60 @@ import { startCronJobs } from '../cron/cronJob.js';  // Import the cron job logi
 // ✅ Create expense controller
 export const createExpenseController = async (req, res) => {
   try {
-    const expenseData = req.body; // Get the expense data from the request body
+    const expenseData = req.body;
+
+    // Validate required fields
+    if (!expenseData.expense_date || !expenseData.amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Expense date and amount are required'
+      });
+    }
+
+    // Validate repeat_type if recurring
+    if (expenseData.recurring) {
+      const validRepeatTypes = ['days', 'weeks', 'months', 'years'];
+      if (expenseData.repeat_type && !validRepeatTypes.includes(expenseData.repeat_type.toLowerCase())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid repeat type. Must be one of: days, weeks, months, years'
+        });
+      }
+    }
+
+    // Convert amount to number
+    expenseData.amount = parseFloat(expenseData.amount);
+    if (isNaN(expenseData.amount)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount must be a valid number'
+      });
+    }
 
     // Call the model to create the expense
     const result = await createExpense(expenseData);
 
-    // Start the cron job dynamically based on user input
+    // Start the cron job if recurring
     if (expenseData.recurring) {
-      startCronJobs(expenseData.repeat_every, expenseData.repeat_type, expenseData.next_recurring_date);
+      startCronJobs(
+        expenseData.repeat_every,
+        expenseData.repeat_type,
+        expenseData.next_recurring_date
+      );
     }
 
     res.status(201).json({
+      success: true,
       message: 'Expense created successfully',
-      expenseId: result.expenseId  // Return the ID of the created expense
+      expenseId: result.expenseId
     });
   } catch (error) {
     console.error('❌ Error creating expense:', error);
-    res.status(500).json({ message: 'Error creating expense', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Error creating expense',
+      error: error.message 
+    });
   }
 };
 

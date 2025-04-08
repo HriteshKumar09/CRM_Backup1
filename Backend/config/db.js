@@ -22,4 +22,21 @@ db.connect((err) => {
     }
 });
 
+// Handle database connection errors and reconnection
+db.on('error', (err) => {
+    console.error('Database error:', err.message);
+    
+    // If connection is lost, try to reconnect
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('Database connection was lost. Attempting to reconnect...');
+        db.connect((connectErr) => {
+            if (connectErr) {
+                console.error('Failed to reconnect:', connectErr.message);
+            } else {
+                console.log('Successfully reconnected to database');
+            }
+        });
+    }
+});
+
 export default db; // Export the database connection for reuse

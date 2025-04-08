@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Select from "react-select";
 import PageNavigation from '../../extra/PageNavigation';
 import { FiEdit, FiTag, FiPlusCircle, FiPlus } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import { MdOutlineFileUpload } from "react-icons/md";
 import ManageLabels from "../../extra/ManageLabels";
 import Import from '../../extra/Importfile';
@@ -20,6 +20,7 @@ import api from "../../Services/api"; // Central API instance
 const Leads = () => {
   const [activeLabel, setActiveLabel] = useState("overview");
   const navigate = useNavigate();
+  const location = useLocation();
   const [openImport, setOpenImport] = useState(false);
   const [ismanageOpen, setIsManageOpen] = useState(false);
   const [labelsList, setLabelsList] = useState([]);
@@ -29,11 +30,13 @@ const Leads = () => {
   const context = "event";
   const [searchQuery, setSearchQuery] = useState("");
   const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [visibleColumns, setVisibleColumns] = useState({
     company_name: true,
     primary_contact: true,
     owner: true,
     label: true,
+    source: true,
     created_date: true,
     status: true,
     action: true,
@@ -64,6 +67,7 @@ const Leads = () => {
 
   // Fetch leads data
   const fetchData = async () => {
+    setLoading(true);
     try {
       const response = await api.get("/leads");
       console.log("API Response:", response.data);
@@ -83,11 +87,14 @@ const Leads = () => {
           return {
             id: lead.id,
             company_name: lead.company_name || '',
+            first_name: lead.first_name || '',
+            last_name: lead.last_name || '',
             primary_contact: `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || '-',
+            email: lead.email || '',
             owner: lead.owner || localStorage.getItem('user_id') || '-',
             label: lead.label || lead.labels || '-',
             source: lead.source || '-',
-            status: savedStatus ? savedStatus.status : (lead.status || 'New'), // Use saved status if exists
+            status: savedStatus ? savedStatus.status : (lead.status || 'New'),
             phone: lead.phone || '-',
             address: lead.address || '-',
             city: lead.city || '-',
@@ -114,10 +121,12 @@ const Leads = () => {
       console.error("Error fetching leads:", error);
       toast.error("Failed to fetch data. Please check your connection.");
       setLeads([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Update useEffect to fetch both leads and team members
+  // Load data on component mount
   useEffect(() => {
     const fetchAllData = async () => {
       try {
@@ -125,23 +134,65 @@ const Leads = () => {
         await fetchData();
 
         // Then fetch team members
-        const teamMembersResponse = await api.get("/team-members/get-members");
-        if (teamMembersResponse.data && teamMembersResponse.data.length) {
-          const transformedOwners = teamMembersResponse.data.map((member) => ({
-            label: `${member.first_name} ${member.last_name}`,
-            value: member.user_id,
-          }));
-          // Add current user to owner options if not already present
+        try {
+          const teamMembersResponse = await api.get("/team-members/get-members");
+          if (teamMembersResponse.data && Array.isArray(teamMembersResponse.data)) {
+            const transformedOwners = teamMembersResponse.data.map((member) => ({
+              label: `${member.first_name} ${member.last_name}`,
+              value: member.user_id,
+            }));
+            // Add current user to owner options if not already present
+            const currentUserId = localStorage.getItem('user_id');
+            const currentUserName = localStorage.getItem('user_name');
+            if (currentUserId && currentUserName && !transformedOwners.find(opt => opt.value === currentUserId)) {
+              transformedOwners.push({
+                label: currentUserName,
+                value: currentUserId
+              });
+            }
+            console.log("Owner Options:", transformedOwners);
+            setOwnerOptions(transformedOwners);
+          }
+        } catch (error) {
+          console.warn("Team members API failed:", error);
+          // Set default owner as current user
           const currentUserId = localStorage.getItem('user_id');
           const currentUserName = localStorage.getItem('user_name');
-          if (currentUserId && currentUserName && !transformedOwners.find(opt => opt.value === currentUserId)) {
-            transformedOwners.push({
+          if (currentUserId && currentUserName) {
+            setOwnerOptions([{
               label: currentUserName,
               value: currentUserId
-            });
+            }]);
           }
-          console.log("Owner Options:", transformedOwners);
-          setOwnerOptions(transformedOwners);
+        }
+
+        // Try to fetch lead sources
+        try {
+          const sourcesResponse = await api.get("/lead-sources");
+          if (sourcesResponse.data && sourcesResponse.data.sources) {
+            setSourceOptions(
+              sourcesResponse.data.sources.map(source => ({
+                label: source.title,
+                value: source.id.toString()
+              }))
+            );
+          }
+        } catch (error) {
+          console.warn("Lead sources API not available, using defaults");
+        }
+
+        // Try to fetch lead labels/statuses
+        try {
+          const statusesResponse = await api.get("/lead-statuses");
+          if (statusesResponse.data && statusesResponse.data.statuses) {
+            const labelOpts = statusesResponse.data.statuses.map(status => ({
+              label: status.title,
+              value: status.id.toString()
+            }));
+            setLabelsList(labelOpts);
+          }
+        } catch (error) {
+          console.warn("Lead statuses API not available, using defaults");
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -150,20 +201,11 @@ const Leads = () => {
     };
 
     fetchAllData();
-    // Cleanup function to remove old status data when component unmounts
-    return () => {
-      // You can add cleanup logic here if needed
-    };
   }, []);
 
   // ✅ Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
-
-  // Pagination Logic
-  const totalItems = leads.length;  // Directly use the updated `leads` length
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // ✅ States for Select Options
   const [ownerOptions, setOwnerOptions] = useState([]);
@@ -198,14 +240,15 @@ const Leads = () => {
   const [selectedLabel, setSelectedLabel] = useState(null);
   const [selectedSource, setSelectedSource] = useState(null);
 
-  // Update the filtered leads logic
+  // Filter the leads based on search query and filters
   const filteredLeads = leads.filter((lead) => {
     // Search query filter
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = (
       (lead.company_name || '').toLowerCase().includes(searchLower) ||
       (lead.primary_contact || '').toLowerCase().includes(searchLower) ||
-      (lead.owner || '').toLowerCase().includes(searchLower)
+      (lead.email || '').toLowerCase().includes(searchLower) ||
+      (lead.status || '').toLowerCase().includes(searchLower)
     );
 
     // Owner filter
@@ -220,27 +263,10 @@ const Leads = () => {
     return matchesSearch && matchesOwner && matchesStatus && matchesLabel && matchesSource;
   });
 
-  // Add filter apply handler
-  const handleApplyFilters = () => {
-    // The filters are already applied through the filteredLeads logic
-    setShowFilters(false); // Hide the filter panel after applying
-    toast.success("Filters applied successfully!");
-  };
-
-  // Update handleReset to also clear search query
-  const handleReset = () => {
-    setSelectedOwner(null);
-    setSelectedStatus(null);
-    setSelectedLabel(null);
-    setSelectedSource(null);
-    setSearchQuery(""); // Clear search query
-    setShowFilters(false);
-    toast.success("Filters reset successfully!");
-  };
-
-  const toggleDialog = () => setIsManageOpen(!ismanageOpen);
-
-  // Update the table body to show filtered and paginated data
+  // Pagination Logic - using filteredLeads for calculations
+  const totalItems = filteredLeads.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + itemsPerPage);
 
   // Add debug logging for pagination
@@ -253,47 +279,129 @@ const Leads = () => {
   const handleOpenTab = (label) => {
     setActiveLabel(label);
     switch (label) {
-      case "Kanban":
-        navigate("/dashboard/Leads/all-kanbab"); // ✅ Corrected
+      case "kanban":
+        navigate("/dashboard/Leads/all-kanbab");
         break;
       default:
-        navigate("/dashboard/Leads"); // ✅ Fallback to main leave page
+        navigate("/dashboard/Leads");
         break;
     }
   };
 
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const [leadData, setLeadData] = useState({
+    company_name: "",
+    primary_contact: "",
+    email: "",
+    owner: localStorage.getItem('user_id') || "",
+    label: "",
+    source: "",
+    status: "New",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "",
+    website: "",
+    gstnumber: "",
+    vatnumber: "",
+    currency: "",
+    currencysymbol: "",
+    created_date: new Date().toISOString(),
+  });
+
+  // Form field definitions for lead form
+  const leadFields = [
+    { name: "company_name", label: "Company Name", type: "text", required: true },
+    { name: "primary_contact", label: "Primary Contact Name", type: "text", placeholder: "First Last" },
+    { name: "email", label: "Email Address", type: "email" },
+    { name: "status", label: "Status", type: "select", options: statusOptions },
+    { name: "owner", label: "Owner", type: "select", options: ownerOptions },
+    { name: "source", label: "Source", type: "select", options: sourceOptions },
+    { name: "phone", label: "Phone Number", type: "text" },
+    { name: "address", label: "Address", type: "textarea" },
+    { name: "city", label: "City", type: "text" },
+    { name: "state", label: "State", type: "text" },
+    { name: "zip", label: "Zip", type: "text" },
+    { name: "country", label: "Country", type: "text" },
+    { name: "website", label: "Website", type: "text" },
+    { name: "vatnumber", label: "VAT Number", type: "text" },
+    { name: "gstnumber", label: "GST Number", type: "text" },
+    { name: "currency", label: "Currency", type: "select", options: currencyOptions },
+    { name: "currencysymbol", label: "Currency Symbol", type: "text" },
+    { name: "label", label: "Label", type: "select", options: labelsList },
+  ];
+
+  // Form change handlers
+  const handleSelectChange = (name, selectedOption) => {
+    if (!selectedOption) {
+      setLeadData(prev => ({ ...prev, [name]: "" }));
+      return;
+    }
+    
+    setLeadData(prev => ({
+      ...prev,
+      [name]: selectedOption.value
+    }));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setLeadData(prevData => ({ ...prevData, [name]: value }));
+  };
+
+  // Save lead (create or update)
   const handleSaveLead = async () => {
     try {
+      // Validate required fields
+      if (!leadData.company_name) {
+        toast.error("Company name is required!");
+        return;
+      }
+
+      // Parse primary contact into first and last name
+      let firstName = "";
+      let lastName = "";
+
+      if (leadData.primary_contact) {
+        const nameParts = leadData.primary_contact.trim().split(/\s+/);
+        firstName = nameParts[0] || "";
+        lastName = nameParts.slice(1).join(" ") || "";
+      }
+
       // Transform the data to match backend structure
       const payload = {
         company_name: leadData.company_name,
-        first_name: leadData.primary_contact.split(' ')[0] || '',
-        last_name: leadData.primary_contact.split(' ')[1] || '',
-        phone: leadData.phone,
-        address: leadData.address,
-        city: leadData.city,
-        state: leadData.state,
-        zip: leadData.zip,
-        country: leadData.country,
-        website: leadData.website,
-        owner: leadData.owner || localStorage.getItem('user_id'), // Use selected owner or current user
+        first_name: firstName,
+        last_name: lastName,
+        email: leadData.email || "",
+        phone: leadData.phone || "",
+        address: leadData.address || "",
+        city: leadData.city || "",
+        state: leadData.state || "",
+        zip: leadData.zip || "",
+        country: leadData.country || "",
+        website: leadData.website || "",
+        owner: leadData.owner || localStorage.getItem('user_id') || "",
         status: leadData.status || 'New',
-        label: leadData.label || leadData.labels, // Handle both label and labels fields
-        source: leadData.source,
-        gstnumber: leadData.gstnumber,
-        vatnumber: leadData.vatnumber,
-        currency: leadData.currency,
-        currencysymbol: leadData.currencysymbol,
+        label: leadData.label || "",
+        source: leadData.source || "",
+        gstnumber: leadData.gstnumber || "",
+        vatnumber: leadData.vatnumber || "",
+        currency: leadData.currency || "",
+        currencysymbol: leadData.currencysymbol || "",
       };
+
+      console.log("Saving lead with payload:", payload);
 
       if (isEditMode) {
         await api.put(`/leads/${leadData.id}`, payload);
         toast.success("Lead updated successfully!");
-        await fetchData(); // Refresh the data
       } else {
-        const response = await api.post("/leads", payload);
+        await api.post("/leads", payload);
         toast.success("Lead created successfully!");
-        await fetchData(); // Refresh the data
       }
 
       // Close form and reset data
@@ -301,10 +409,11 @@ const Leads = () => {
       setLeadData({
         company_name: "",
         primary_contact: "",
-        owner: "",
+        email: "",
+        owner: localStorage.getItem('user_id') || "",
         label: "",
         source: "",
-        status: "",
+        status: "New",
         phone: "",
         address: "",
         city: "",
@@ -318,23 +427,12 @@ const Leads = () => {
         currencysymbol: "",
         created_date: new Date().toISOString(),
       });
+      
+      // Refresh the data
+      fetchData();
     } catch (error) {
       console.error("Error saving lead:", error);
-      toast.error("Failed to save lead. Please check your connection.");
-    }
-  };
-
-  // Handle Updating Lead Status
-  const handleUpdateStatus = async (id) => {
-    const newStatus = prompt("Enter new status ID (1: New, 2: Qualified, etc.)");
-    if (newStatus) {
-      try {
-        await api.put(`/leads/${id}/status`, { statusId: parseInt(newStatus) });
-        fetchData(); // Refresh the data
-      } catch (error) {
-        console.error("Error updating status:", error);
-        toast.error("Failed to update status. Please check your connection.");
-      }
+      toast.error("Failed to save lead: " + (error.response?.data?.message || "Please check your connection."));
     }
   };
 
@@ -391,63 +489,23 @@ const Leads = () => {
     toast.success("Status updated successfully!");
   };
 
-   // ✅ Handle Owner Change
-   const handleOwnerChange = (selectedOption) => {
-    setLeadData(prev => ({
-      ...prev,
-      owner: selectedOption.value // Store the owner ID directly
-    }));
+  // Filter handlers
+  const handleApplyFilters = () => {
+    setShowFilters(false); // Hide the filter panel after applying
+    toast.success("Filters applied successfully!");
   };
 
-  // ✅ Handle Label Change
-  const handleLabelChange = (selectedOption) => {
-    setLeadData(prev => ({
-      ...prev,
-      label: selectedOption.value // Store the selected label value
-    }));
+  const handleReset = () => {
+    setSelectedOwner(null);
+    setSelectedStatus(null);
+    setSelectedLabel(null);
+    setSelectedSource(null);
+    setSearchQuery(""); // Clear search query
+    setShowFilters(false);
+    toast.success("Filters reset successfully!");
   };
 
-  const leadFields = [
-    { name: "company_name", label: "Company Name", type: "text" },
-    { name: "status", label: "Status", type: "select", options: statusOptions },
-    { name: "owner", label: "Owner", type: "select", options: ownerOptions, onChange: handleOwnerChange },
-    { name: "source", label: "Source", type: "select", options: sourceOptions },
-    { name: "address", label: "Address", type: "textarea" },
-    { name: "city", label: "City", type: "text" },
-    { name: "state", label: "State", type: "text" },
-    { name: "zip", label: "Zip", type: "text" },
-    { name: "country", label: "Country", type: "text" },
-    { name: "phone", label: "Phone Number", type: "text" },
-    { name: "website", label: "Website", type: "text" },
-    { name: "vatnumber", label: "VAT Number", type: "text" },
-    { name: "gstnumber", label: "GST Number", type: "text" },
-    { name: "currency", label: "Currency", type: "select", options: currencyOptions },
-    { name: "currencysymbol", label: "Currency Symbol", type: "text" },
-    { name: "label", label: "Label", type: "select", options: labelsList, onChange: handleLabelChange },
-  ];
-
-  const [isEditMode, setIsEditMode] = useState(false);
-
-  const [leadData, setLeadData] = useState({
-    company_name: "",
-    primary_contact: "",
-    owner: "",
-    label: "",
-    source: "",
-    status: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zip: "",
-    country: "",
-    website: "",
-    gstnumber: "",
-    vatnumber: "",
-    currency: "",
-    currencysymbol: "",
-    created_date: new Date().toISOString(),
-  });
+  const toggleDialog = () => setIsManageOpen(!ismanageOpen);
 
   // Format date
   const formatDate = (dateString) => {
@@ -459,8 +517,40 @@ const Leads = () => {
     });
   };
 
+  // Check if we need to open the Add Lead form on mount (coming from kanban view)
+  useEffect(() => {
+    if (location.state?.openAddLeadForm) {
+      setIsEditMode(false);
+      setLeadData({
+        company_name: "",
+        primary_contact: "",
+        email: "",
+        owner: localStorage.getItem('user_id') || "",
+        label: "",
+        source: "",
+        status: "New",
+        phone: "",
+        address: "",
+        city: "",
+        state: "",
+        zip: "",
+        country: "",
+        website: "",
+        gstnumber: "",
+        vatnumber: "",
+        currency: "",
+        currencysymbol: "",
+        created_date: new Date().toISOString(),
+      });
+      setShowModal(true);
+      
+      // Clear the navigation state to prevent reopening on refresh
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate]);
+
   return (
-    <div>
+    <div className="min-h-screen bg-white dark:bg-gray-800">
       <ToastContainer />
       <PageNavigation
         title="Leads"
@@ -469,11 +559,34 @@ const Leads = () => {
           { label: "kanban", value: "Kanban" },
         ]}
         activeLabel={activeLabel}
-        handleLabelClick={handleOpenTab} // ✅ Updated function
+        handleLabelClick={handleOpenTab}
         buttons={[
-          { label: "Manage Labels", icon: FiTag, onClick: () => setIsManageOpen(true) },
-          { label: "Import tasks", icon: MdOutlineFileUpload, onClick: () => setOpenImport(true) },
-          { label: "Add Lead", icon: FiPlusCircle, onClick: () => setShowModal(true) },
+          { label: "Import leads", icon: MdOutlineFileUpload, onClick: () => setOpenImport(true) },
+          { label: "Add lead", icon: FiPlusCircle, onClick: () => {
+            setIsEditMode(false);
+            setLeadData({
+              company_name: "",
+              primary_contact: "",
+              email: "",
+              owner: localStorage.getItem('user_id') || "",
+              label: "",
+              source: "",
+              status: "New",
+              phone: "",
+              address: "",
+              city: "",
+              state: "",
+              zip: "",
+              country: "",
+              website: "",
+              gstnumber: "",
+              vatnumber: "",
+              currency: "",
+              currencysymbol: "",
+              created_date: new Date().toISOString(),
+            });
+            setShowModal(true);
+          }},
         ]}
       />
       <div className="border-t bg-white border-gray-200 w-full flex justify-between p-4 rounded-t-md dark:bg-gray-700 dark:text-white">
@@ -500,7 +613,7 @@ const Leads = () => {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             data={filteredLeads}
-            fileName="clients"
+            fileName="leads"
           />
         </div>
       </div>
@@ -527,101 +640,143 @@ const Leads = () => {
           </button>
         </div>
       )}
-      <table className="projects-table min-w-full divide-y divide-gray-200 border-t border-gray-200 w-full">
-        <thead className="bg-gray-50 dark:bg-gray-700 dark:text-white">
-          <tr>
-            {columns.map(
-              (col) =>
-                visibleColumns[col.key] && (
-                  <th key={col.key} className="py-3 px-6 text-left">
-                    {col.label}
-                  </th>
-                )
-            )}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-700 dark:text-white">
-          {paginatedLeads.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} className="text-center p-4 text-gray-500">
-                No record found.
-              </td>
-            </tr>
-          ) : (
-            paginatedLeads.map((lead) => (
-              <tr key={lead.id} className="hover:bg-gray-100 dark:hover:bg-gray-700">
-                {visibleColumns.company_name && ( <td className="p-3 border-b text-blue-400">{lead.company_name || "-"}</td> )}
-                {visibleColumns.primary_contact && ( <td className="p-3 border-b">{lead.primary_contact || "-"}</td> )}
-                {visibleColumns.owner && ( <td className="p-3 border-b"> {ownerOptions.find(opt => opt.value === lead.owner)?.label || lead.owner || "-"}  </td> )}
-                {visibleColumns.label && ( <td className="p-3 border-b">{lead.label || "-"}</td> )}
-                {visibleColumns.source && ( <td className="p-3 border-b">{lead.source || "-"}</td> )}
-                {visibleColumns.status && (
-                  <td className="p-3 border-b">
-                    {editingStatusId === lead.id ? (
-                      <Select
-                        options={statusOptions}
-                        value={statusOptions.find((option) => option.value === lead.status)}
-                        onChange={(selectedOption) => handleStatusChange(selectedOption, lead.id)}
-                        onBlur={() => setEditingStatusId(null)}
-                        autoFocus
-                        className="w-32"
-                      />
-                    ) : (
-                      <span
-                        onClick={() => setEditingStatusId(lead.id)}
-                        className={`px-3 py-1 rounded-lg text-white text-xs font-bold cursor-pointer ${
-                          lead.status && lead.status.toLowerCase() === "new"
-                            ? "bg-blue-400"
-                            : lead.status && lead.status.toLowerCase() === "qualified"
-                            ? "bg-purple-400"
-                            : lead.status && lead.status.toLowerCase() === "discussion"
-                            ? "bg-yellow-400"
-                            : lead.status && lead.status.toLowerCase() === "negotiation"
-                            ? "bg-orange-400"
-                            : lead.status && lead.status.toLowerCase() === "won"
-                            ? "bg-green-400"
-                            : lead.status && lead.status.toLowerCase() === "lost"
-                            ? "bg-red-400"
-                            : "bg-gray-300"
-                        }`}
-                      >
-                        {lead.status || "-"}
-                      </span>
-                    )}
-                  </td>
-                )}
-                {visibleColumns.phone && ( <td className="p-3 border-b">{lead.phone || "-"}</td> )}
-                {visibleColumns.city && ( <td className="p-3 border-b">{lead.city || "-"}</td> )}
-                {visibleColumns.country && ( <td className="p-3 border-b">{lead.country || "-"}</td> )}
-                {visibleColumns.created_date && ( <td className="p-3 border-b"> {lead.created_date ? formatDate(lead.created_date) : "-"} </td> )}
-                {visibleColumns.action && (
-                  <td className="p-3 border-b">
-                    <button
-                      onClick={() => {
-                        setLeadData(lead);
-                        setIsEditMode(true);
-                        setShowModal(true);
-                      }}
-                      className="p-1 rounded transition-colors duration-200 mr-2"
-                    >
-                      <FiEdit className="hover:text-white hover:bg-green-500 rounded-lg p-2" size={30} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(lead.id)}
-                      className="p-1 rounded transition-colors duration-200"
-                    >
-                      <SlClose className="hover:text-white hover:bg-red-500 rounded-xl p-2" size={30} />
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
 
-      {/* ✅ Pagination Component */}
-      <Pagination currentPage={currentPage} totalPages={totalPages} itemsPerPage={itemsPerPage} setItemsPerPage={setItemsPerPage} setCurrentPage={setCurrentPage} totalItems={totalItems} />
+      {/* Loading indicator */}
+      {loading && (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+
+      {/* Leads Table */}
+      {!loading && (
+        <>
+          <div className="overflow-x-auto">
+            <table className="projects-table min-w-full divide-y divide-gray-200 border-t border-gray-200 w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700 dark:text-white">
+                <tr>
+                  {columns.map(
+                    (col) =>
+                      visibleColumns[col.key] && (
+                        <th key={col.key} className="py-3 px-6 text-left">
+                          {col.label}
+                        </th>
+                      )
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-700 dark:text-white">
+                {paginatedLeads.length === 0 ? (
+                  <tr>
+                    <td colSpan={Object.values(visibleColumns).filter(v => v).length} className="text-center p-4 text-gray-500 dark:text-gray-300">
+                      No leads found. Add a new lead to get started.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedLeads.map((lead) => (
+                    <tr key={lead.id} className="hover:bg-gray-100 dark:hover:bg-gray-600">
+                      {visibleColumns.company_name && ( 
+                        <td className="p-3 border-b text-blue-400">{lead.company_name || "-"}</td> 
+                      )}
+                      {visibleColumns.primary_contact && ( 
+                        <td className="p-3 border-b">{lead.primary_contact || "-"}</td> 
+                      )}
+                      {visibleColumns.owner && ( 
+                        <td className="p-3 border-b"> {ownerOptions.find(opt => opt.value === lead.owner)?.label || lead.owner || "-"}  </td> 
+                      )}
+                      {visibleColumns.label && ( 
+                        <td className="p-3 border-b">{lead.label || "-"}</td> 
+                      )}
+                      {visibleColumns.source && ( 
+                        <td className="p-3 border-b">{lead.source || "-"}</td> 
+                      )}
+                      {visibleColumns.status && (
+                        <td className="p-3 border-b">
+                          {editingStatusId === lead.id ? (
+                            <Select
+                              options={statusOptions}
+                              value={statusOptions.find((option) => option.value === lead.status)}
+                              onChange={(selectedOption) => handleStatusChange(selectedOption, lead.id)}
+                              onBlur={() => setEditingStatusId(null)}
+                              autoFocus
+                              className="w-32"
+                            />
+                          ) : (
+                            <span
+                              onClick={() => setEditingStatusId(lead.id)}
+                              className={`px-3 py-1 rounded-lg text-white text-xs font-bold cursor-pointer ${
+                                lead.status?.toLowerCase() === "new"
+                                  ? "bg-blue-400"
+                                  : lead.status?.toLowerCase() === "qualified"
+                                  ? "bg-purple-400"
+                                  : lead.status?.toLowerCase() === "discussion"
+                                  ? "bg-yellow-400"
+                                  : lead.status?.toLowerCase() === "negotiation"
+                                  ? "bg-orange-400"
+                                  : lead.status?.toLowerCase() === "won"
+                                  ? "bg-green-400"
+                                  : lead.status?.toLowerCase() === "lost"
+                                  ? "bg-red-400"
+                                  : "bg-gray-300"
+                              }`}
+                            >
+                              {lead.status || "New"}
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.phone && ( <td className="p-3 border-b">{lead.phone || "-"}</td> )}
+                      {visibleColumns.city && ( <td className="p-3 border-b">{lead.city || "-"}</td> )}
+                      {visibleColumns.country && ( <td className="p-3 border-b">{lead.country || "-"}</td> )}
+                      {visibleColumns.created_date && ( 
+                        <td className="p-3 border-b"> {lead.created_date ? formatDate(lead.created_date) : "-"} </td> 
+                      )}
+                      {visibleColumns.action && (
+                        <td className="p-3 border-b">
+                          <button
+                            onClick={() => {
+                              // Create a properly formatted primary contact name from first and last name
+                              const fullName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
+                              
+                              setLeadData({
+                                ...lead,
+                                primary_contact: fullName || ''
+                              });
+                              setIsEditMode(true);
+                              setShowModal(true);
+                            }}
+                            className="p-1 rounded transition-colors duration-200 mr-2"
+                          >
+                            <FiEdit className="hover:text-white hover:bg-green-500 rounded-lg p-2" size={30} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(lead.id)}
+                            className="p-1 rounded transition-colors duration-200"
+                          >
+                            <SlClose className="hover:text-white hover:bg-red-500 rounded-xl p-2" size={30} />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="mt-4 p-2">
+            <Pagination 
+              currentPage={currentPage} 
+              totalPages={totalPages} 
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage} 
+              setItemsPerPage={setItemsPerPage} 
+              setCurrentPage={setCurrentPage} 
+            />
+          </div>
+        </>
+      )}
 
       {/* Import Dialog */}
       <Import
@@ -630,21 +785,38 @@ const Leads = () => {
         onFileUpload={(file) => console.log("Uploaded File:", file)}
         sampleDownload={() => console.log("Downloading Sample File")}
       />
-      {/* Import Managelable */}
-      <ManageLabels isOpen={ismanageOpen} onClose={toggleDialog} labelsList={labelsList} setLabelsList={setLabelsList} context={context} />
+      
+      {/* Manage Labels Dialog */}
+      <ManageLabels 
+        isOpen={ismanageOpen} 
+        onClose={toggleDialog} 
+        labelsList={labelsList} 
+        setLabelsList={setLabelsList} 
+        context={context} 
+      />
 
+      {/* Lead Form Dialog */}
       <FormDialog
         open={showModal}
         handleClose={() => setShowModal(false)}
         type={isEditMode ? "Edit Lead" : "Add Lead"}
         fields={leadFields}
         formData={leadData}
-        handleChange={(e) => { const { name, value } = e.target; setLeadData((prevData) => ({ ...prevData, [name]: value, }));}}
-        handleOwnerChange={handleOwnerChange}
+        handleChange={handleInputChange}
+        handleSelectChange={handleSelectChange}
         handleSave={handleSaveLead}
         showUploadButton={true}
-        extraButtons={[ { label: "Save", onClick: handleSaveLead, icon: IoMdCheckmarkCircleOutline, color: "#007bff", },]}
+        extraButtons={[
+          { 
+            label: "Save", 
+            onClick: handleSaveLead, 
+            icon: IoMdCheckmarkCircleOutline, 
+            color: "#007bff"
+          },
+        ]}
       />
+      
+      <Outlet />
     </div>
   );
 };

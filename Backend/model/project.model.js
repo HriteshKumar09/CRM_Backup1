@@ -144,8 +144,9 @@ export const getProjectsByClientId = (clientId, limit = 10, offset = 0) => {
   });
 };
 
-// Project Status CRUD Operations
 
+
+// Project Status CRUD Operations
 // Create a new project status
 export const createProjectStatus = (statusData) => {
   return new Promise((resolve, reject) => {
@@ -229,6 +230,152 @@ export const deleteProjectStatus = (statusId) => {
           affectedRows: result.affectedRows
         });
       }
+    });
+  });
+};
+
+
+
+/////////////////
+//project Time
+/////////////////
+
+// ⏱️ Create a new time log
+export const createProjectTime = (timeData) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      INSERT INTO _project_time (
+        project_id, user_id, start_time, end_time, hours, status, note, task_id, deleted
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `;
+
+    const values = [
+      timeData.project_id,
+      timeData.user_id,
+      timeData.start_time,
+      timeData.end_time || null,
+      timeData.hours || 0,
+      timeData.status || 'logged',
+      timeData.note || '',
+      timeData.task_id || 0
+    ];
+
+    db.query(query, values, (err, result) => {
+      if (err) return reject(err);
+      resolve({ success: true, id: result.insertId });
+    });
+  });
+};
+
+// 📥 Get time log by ID
+export const getProjectTimeById = (id) => {
+  return new Promise((resolve, reject) => {
+    const query = `SELECT * FROM _project_time WHERE id = ? AND deleted = 0`;
+    db.query(query, [id], (err, result) => {
+      if (err) return reject(err);
+      resolve(result[0] || null);
+    });
+  });
+};
+
+
+// 📋 Get all time logs for a project
+export const getProjectTimeByProjectId = (projectId) => {
+  return new Promise((resolve, reject) => {
+    const query = `SELECT * FROM _project_time WHERE project_id = ? AND deleted = 0`;
+    db.query(query, [projectId], (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
+    });
+  });
+};
+
+
+// ✏️ Update a time log
+export const updateProjectTime = (id, timeData) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      UPDATE _project_time SET 
+        start_time = ?, end_time = ?, hours = ?, status = ?, note = ?, task_id = ?
+      WHERE id = ? AND deleted = 0
+    `;
+
+    const values = [
+      timeData.start_time,
+      timeData.end_time || null,
+      timeData.hours || 0,
+      timeData.status || 'logged',
+      timeData.note || '',
+      timeData.task_id || 0,
+      id
+    ];
+
+    db.query(query, values, (err, result) => {
+      if (err) return reject(err);
+      resolve({ success: true });
+    });
+  });
+};
+
+// 🗑️ Soft delete a time log
+export const deleteProjectTime = (id) => {
+  return new Promise((resolve, reject) => {
+    const query = `UPDATE _project_time SET deleted = 1 WHERE id = ?`;
+    db.query(query, [id], (err, result) => {
+      if (err) return reject(err);
+      resolve({ success: true });
+    });
+  });
+};
+
+
+//////////////////////
+//project time calculation
+///////////////////////
+
+// Get total time spent on a project
+export const getTotalTimeForProject = (projectId) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT SUM(hours) AS total_hours 
+      FROM _project_time 
+      WHERE project_id = ? AND deleted = 0 AND status = 'logged'
+    `;
+    db.query(query, [projectId], (err, result) => {
+      if (err) return reject(err);
+      resolve(result[0]); // { total_hours: 5.5 }
+    });
+  });
+};
+
+// ✅ Get total hours grouped by task for a given project
+export const getHoursByTaskForProject = (projectId) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT t.id AS task_id, t.title AS task_title, IFNULL(SUM(pt.hours), 0) AS total_hours
+      FROM _tasks t
+      LEFT JOIN _project_time pt ON pt.task_id = t.id AND pt.deleted = 0
+      WHERE t.project_id = ? AND t.deleted = 0
+      GROUP BY t.id
+    `;
+    db.query(query, [projectId], (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
+    });
+  });
+};
+
+// ✅ Get total hours a user has spent on a project
+export const getUserTotalHoursOnProject = (projectId, userId) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT IFNULL(SUM(hours), 0) AS total_hours
+      FROM _project_time
+      WHERE project_id = ? AND user_id = ? AND deleted = 0
+    `;
+    db.query(query, [projectId, userId], (err, result) => {
+      if (err) return reject(err);
+      resolve(result[0]);
     });
   });
 };

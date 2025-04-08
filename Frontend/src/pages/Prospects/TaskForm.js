@@ -8,7 +8,8 @@ import PageNavigation from "../../extra/PageNavigation";
 import DropdownButton from "../../extra/DropdownButton ";
 import ExportSearchControls from "../../extra/ExportSearchControls";
 import Pagination from "../../extra/Pagination";
-import api from "../../Services/api.js"; // ✅ API Integration
+import api from "../../Services/api.js";
+import { toast } from 'react-toastify';
 
 const TaskForm = () => {
     const [tasks, setTasks] = useState([]);
@@ -25,69 +26,61 @@ const TaskForm = () => {
     const [assignToOptions, setAssignToOptions] = useState([]);
     const [collaboratorOptions, setCollaboratorOptions] = useState([]);
     const [priorityOptions, setPriorityOptions] = useState([]);
+    const [statusOptions, setStatusOptions] = useState([
+        { value: "to_do", label: "To Do" },
+        { value: "in_progress", label: "In Progress" },
+        { value: "completed", label: "Completed" }
+    ]);
 
     // Fetch select options from API
     useEffect(() => {
-        const fetchRelatedTo = async () => {
+        const fetchOptions = async () => {
             try {
-                const response = await api.get("/relatedTo-options");
-                setRelatedToOptions(response.data || []);
+                // Fetch projects
+                const projectsResponse = await api.get("/projects");
+                if (projectsResponse.data.success) {
+                    setProjectOptions(projectsResponse.data.data.map(project => ({
+                        value: project.id,
+                        label: project.title
+                    })));
+                }
+
+                // Fetch milestones
+                const milestonesResponse = await api.get("/milestones");
+                if (milestonesResponse.data.success) {
+                    setMilestoneOptions(milestonesResponse.data.data.map(milestone => ({
+                        value: milestone.id,
+                        label: milestone.title
+                    })));
+                }
+
+                // Fetch team members
+                const teamResponse = await api.get("/users");
+                if (teamResponse.data.success) {
+                    const teamMembers = teamResponse.data.data.map(member => ({
+                        value: member.id,
+                        label: `${member.first_name} ${member.last_name}`,
+                        email: member.email
+                    }));
+                    setAssignToOptions(teamMembers);
+                    setCollaboratorOptions(teamMembers);
+                }
+
+                // Fetch priority options
+                const priorityResponse = await api.get("/priority-options");
+                if (priorityResponse.data.success) {
+                    setPriorityOptions(priorityResponse.data.data.map(priority => ({
+                        value: priority.id,
+                        label: priority.title
+                    })));
+                }
             } catch (error) {
-                console.error("❌ Error fetching relatedTo options:", error);
+                console.error("Error fetching options:", error);
+                toast.error("Failed to fetch form options");
             }
         };
 
-        const fetchProjects = async () => {
-            try {
-                const response = await api.get("/projects");
-                setProjectOptions(response.data || []);
-            } catch (error) {
-                console.error("❌ Error fetching project options:", error);
-            }
-        };
-
-        const fetchMilestones = async () => {
-            try {
-                const response = await api.get("/milestones");
-                setMilestoneOptions(response.data || []);
-            } catch (error) {
-                console.error("❌ Error fetching milestone options:", error);
-            }
-        };
-
-        const fetchAssignTo = async () => {
-            try {
-                const response = await api.get("/users");
-                setAssignToOptions(response.data || []);
-            } catch (error) {
-                console.error("❌ Error fetching assignTo options:", error);
-            }
-        };
-
-        const fetchCollaborators = async () => {
-            try {
-                const response = await api.get("/collaborators");
-                setCollaboratorOptions(response.data || []);
-            } catch (error) {
-                console.error("❌ Error fetching collaborators options:", error);
-            }
-        };
-
-        const fetchPriority = async () => {
-            try {
-                const response = await api.get("/priority-options");
-                setPriorityOptions(response.data || []);
-            } catch (error) {
-                console.error("❌ Error fetching priority options:", error);
-            }
-        };
-
-        fetchRelatedTo();
-        fetchProjects();
-        fetchMilestones();
-        fetchAssignTo();
-        fetchCollaborators();
-        fetchPriority();
+        fetchOptions();
     }, []);
 
     const [visibleColumns, setVisibleColumns] = useState({
@@ -96,7 +89,7 @@ const TaskForm = () => {
         startDate: true,
         deadline: true,
         milestone: true,
-        relatedTo: true,
+        project: true,
         assignedTo: true,
         collaborators: true,
         status: true,
@@ -109,7 +102,7 @@ const TaskForm = () => {
         { key: "startDate", label: "Start Date" },
         { key: "deadline", label: "Deadline" },
         { key: "milestone", label: "Milestone" },
-        { key: "relatedTo", label: "Related To" },
+        { key: "project", label: "Project" },
         { key: "assignedTo", label: "Assigned To" },
         { key: "collaborators", label: "Collaborators" },
         { key: "status", label: "Status" },
@@ -117,34 +110,29 @@ const TaskForm = () => {
     ];
 
     const fields = [
-        { name: "title", label: "Title", type: "text" },
+        { name: "title", label: "Title", type: "text", required: true },
         { name: "description", label: "Description", type: "textarea", rows: 2 },
-        { name: "relatedTo", label: "Related To", type: "select", options: relatedToOptions },
-        { name: "project", label: "Project", type: "select", options: projectOptions },
-        { name: "milestone", label: "Milestone", type: "select", options: milestoneOptions },
-        { name: "assignTo", label: "Assign To", type: "select", options: assignToOptions },
-        { name: "collaborators", label: "Collaborators", type: "select", options: collaboratorOptions },
-        {
-            name: "status",
-            label: "Status",
-            type: "select",
-            options: [
-                { value: "To do", label: "To do" },
-                { value: "In Progress", label: "In Progress" },
-                { value: "Completed", label: "Completed" },
-            ],
-        },
-        { name: "priority", label: "Priority", type: "select", options: priorityOptions },
-        { name: "startDate", label: "Start Date", type: "date" },
+        { name: "project_id", label: "Project", type: "select", options: projectOptions, required: true },
+        { name: "milestone_id", label: "Milestone", type: "select", options: milestoneOptions },
+        { name: "assigned_to", label: "Assign To", type: "select", options: assignToOptions, required: true },
+        { name: "collaborators", label: "Collaborators", type: "select", options: collaboratorOptions, isMulti: true },
+        { name: "status", label: "Status", type: "select", options: statusOptions, required: true },
+        { name: "priority_id", label: "Priority", type: "select", options: priorityOptions, required: true },
+        { name: "start_date", label: "Start Date", type: "date" },
         { name: "deadline", label: "Deadline", type: "date" },
     ];
 
     const fetchTasks = async () => {
         try {
-            const response = await api.get(`/tasks?page=${currentPage}&limit=${itemsPerPage}`);
-            setTasks(response.data);
+            const response = await api.get(`/tasks?limit=${itemsPerPage}&offset=${(currentPage - 1) * itemsPerPage}`);
+            if (response.data.success) {
+                setTasks(response.data.data);
+            } else {
+                toast.error(response.data.message || "Failed to fetch tasks");
+            }
         } catch (error) {
-            console.error("❌ Error fetching tasks:", error);
+            console.error("Error fetching tasks:", error);
+            toast.error("Failed to fetch tasks");
         }
     };
 
@@ -160,21 +148,47 @@ const TaskForm = () => {
         }));
     };
 
+    const handleSelectChange = (selectedOption, { name }) => {
+        setSelectedTask((prevData) => ({
+            ...prevData,
+            [name]: selectedOption ? selectedOption.value : null,
+        }));
+    };
+
+    const handleMultiSelectChange = (selectedOptions, { name }) => {
+        setSelectedTask((prevData) => ({
+            ...prevData,
+            [name]: selectedOptions ? selectedOptions.map(option => option.value).join(',') : '',
+        }));
+    };
+
     const handleSaveTask = async () => {
         try {
             if (isEditMode) {
-                await api.put(`/tasks/${selectedTask.id}`, selectedTask);
+                const response = await api.put(`/tasks/${selectedTask.id}`, selectedTask);
+                if (response.data.success) {
+                    toast.success("Task updated successfully");
+                    setIsTaskModalOpen(false);
+                    fetchTasks();
+                } else {
+                    toast.error(response.data.message || "Failed to update task");
+                }
             } else {
-                await api.post("/tasks", selectedTask);
+                const response = await api.post("/tasks", selectedTask);
+                if (response.data.success) {
+                    toast.success("Task created successfully");
+                    setIsTaskModalOpen(false);
+                    fetchTasks();
+                } else {
+                    toast.error(response.data.message || "Failed to create task");
+                }
             }
-            setIsTaskModalOpen(false);
-            fetchTasks(); // Refresh task list after saving
         } catch (error) {
-            console.error("❌ Error saving task:", error);
+            console.error("Error saving task:", error);
+            toast.error("Failed to save task");
         }
     };
 
-    // Open Task Modal for Editing
     const handleEditTask = (task) => {
         setIsEditMode(true);
         setSelectedTask(task);
@@ -182,12 +196,18 @@ const TaskForm = () => {
     };
 
     const handleDeleteTask = async (taskId) => {
-        if (window.confirm("❗ Are you sure you want to delete this task?")) {
+        if (window.confirm("Are you sure you want to delete this task?")) {
             try {
-                await api.delete(`/tasks/${taskId}`);
-                fetchTasks();
+                const response = await api.delete(`/tasks/${taskId}`);
+                if (response.data.success) {
+                    toast.success("Task deleted successfully");
+                    fetchTasks();
+                } else {
+                    toast.error(response.data.message || "Failed to delete task");
+                }
             } catch (error) {
-                console.error("❌ Error deleting task:", error);
+                console.error("Error deleting task:", error);
+                toast.error("Failed to delete task");
             }
         }
     };
@@ -277,6 +297,8 @@ const TaskForm = () => {
                 fields={fields}
                 formData={selectedTask || {}}
                 handleChange={handleChange}
+                handleSelectChange={handleSelectChange}
+                handleMultiSelectChange={handleMultiSelectChange}
                 handleSave={handleSaveTask}
                 extraButtons={[
                     {

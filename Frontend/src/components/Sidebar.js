@@ -217,9 +217,9 @@ const Sidebar = ({ selectedColor, isCollapsed }) => {
       ]
     },
     { name: "Subscriptions", 
-      path: "/dashboard/Subscriptions",
+      path: "/dashboard/subscriptions",
       roles: [roles.ADMIN], // Only admin can access
-       icon: <FiRepeat /> },
+      icon: <FiRepeat /> },
     {
       name: "Sales",
       icon: <FiShoppingCart />,

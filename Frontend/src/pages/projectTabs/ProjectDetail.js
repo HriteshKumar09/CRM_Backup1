@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FiSettings, FiClock } from "react-icons/fi";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 import ReminderModal from "../../extra/Reminders";
 import { RiLayoutGridFill } from "react-icons/ri";
 import { IoMdStarOutline } from "react-icons/io";
@@ -8,7 +8,8 @@ import { IoMdStarOutline } from "react-icons/io";
 const ProjectDetail = () => {
   const [timerRunning, setTimerRunning] = useState(false);
   const [isReminderModalOpen, setReminderModalOpen] = useState(false);
-  const location = useLocation(); // Detects current path
+  const location = useLocation();
+  const { projectId } = useParams(); // Get project ID from URL params
 
   const toggleTimer = () => {
     setTimerRunning(!timerRunning); 
@@ -128,8 +129,8 @@ const ProjectDetail = () => {
           </div>
       </div>
       {/* Outlet for Nested Routes */}
-      <div className=" shadow-lg rounded-lg dark:bg-gray-700 dark:text-white">
-        <Outlet />
+      <div className="shadow-lg rounded-lg dark:bg-gray-700 dark:text-white">
+        <Outlet context={{ projectId }} />
       </div>
 
       {/* Reminder Modal */}

@@ -6,54 +6,87 @@ const api = axios.create({
   withCredentials: true,  // Ensure cookies (like refresh tokens) are sent with every request
 });
 
+// Flag to prevent multiple refresh token requests
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Request interceptor to attach token to each request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");  // Retrieve token from localStorage
+    const token = localStorage.getItem("token");
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;  // Attach token to headers for authorization
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)  // Handle error in request
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor to handle expired tokens
 api.interceptors.response.use(
-  (response) => response,  // If response is successful, return it
+  (response) => response,
   async (error) => {
-    if (error.response && error.response.status === 401) {  // If token expired (401 Unauthorized)
-      console.warn("🔄 Token Expired, Trying to Refresh...");
+    const originalRequest = error.config;
 
-      try {
-        // Attempt to refresh the token using the refresh token stored in cookies
-        const refreshResponse = await axios.post(
-          "http://localhost:4008/api/users/auth/refresh",
-          {},
-          { withCredentials: true } // Ensure cookies are sent with the request
-        );
-
-        if (refreshResponse.data.accessToken) {
-          // If the refresh token was successful, update the token in localStorage
-          localStorage.setItem("token", refreshResponse.data.accessToken);
-          console.log("✅ Token Refreshed Successfully!");
-
-          // Retry the original failed request with the new access token
-          error.config.headers.Authorization = `Bearer ${refreshResponse.data.accessToken}`;
-          return axios(error.config);  // Retry the original request
-        } else {
-          throw new Error("Failed to refresh token.");
-        }
-      } catch (refreshError) {
-        console.error("❌ Refresh Token Failed. Logging out...");
-        localStorage.removeItem("token");  // Remove expired token from localStorage
-        window.location.href = "/";  // Redirect to login page if refresh fails
-      }
+    // If the error is not 401 or it's already been retried, reject
+    if (!error.response || error.response.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
     }
 
-    // If the error is not a token expiration error, reject the promise
-    return Promise.reject(error);  // Return the error if it's not handled (401, 500, etc.)
+    if (isRefreshing) {
+      // If token refresh is in progress, queue this request
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return axios(originalRequest);
+        })
+        .catch(err => Promise.reject(err));
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    try {
+      console.warn("🔄 Token Expired, Trying to Refresh...");
+      const refreshResponse = await axios.post(
+        "http://localhost:4008/api/users/auth/refresh",
+        {},
+        { withCredentials: true }
+      );
+
+      const { accessToken } = refreshResponse.data;
+      if (accessToken) {
+        localStorage.setItem("token", accessToken);
+        api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        console.log("✅ Token Refreshed Successfully!");
+        
+        processQueue(null, accessToken);
+        return axios(originalRequest);
+      }
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      console.error("❌ Refresh Token Failed. Logging out...");
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 
-export default api;  // Export axios instance for use in other parts of the app
+export default api;

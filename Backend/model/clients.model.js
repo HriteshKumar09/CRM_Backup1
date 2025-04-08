@@ -10,7 +10,7 @@ const formatDate = (date) => {
 const validateClientData = (clientData) => {
   if (!clientData.company_name) throw new Error("Company name is required");
   if (!clientData.type) throw new Error("Client type is required");
-  // ...additional validation logic...
+  // ...we can add extra validation logic here to make it secure w...
 };
 
 // Function to create a new client

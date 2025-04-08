@@ -10,11 +10,17 @@ export const createExpense = (expenseData) => {
       no_of_cycles, next_recurring_date, no_of_cycles_completed, deleted
     } = expenseData;
 
+    // Validate and convert repeat_type to enum value
+    const validRepeatTypes = ['days', 'weeks', 'months', 'years'];
+    const normalizedRepeatType = repeat_type && validRepeatTypes.includes(repeat_type.toLowerCase()) 
+      ? repeat_type.toLowerCase() 
+      : 'months';
+
     // Calculate next recurring date if recurring
     let nextDate = next_recurring_date || null;
-    if (recurring && repeat_every && repeat_type) {
+    if (recurring && repeat_every && normalizedRepeatType) {
       nextDate = moment(next_recurring_date || expense_date)
-        .add(repeat_every, repeat_type)
+        .add(repeat_every, normalizedRepeatType)
         .format('YYYY-MM-DD');
     }
 
@@ -41,8 +47,8 @@ export const createExpense = (expenseData) => {
       client_id || 0,
       recurring ? 1 : 0,
       recurring_expense_id || 0,
-      repeat_every || 0,
-      repeat_type || 'months',
+      repeat_every || 1,
+      normalizedRepeatType,
       no_of_cycles || 0,
       nextDate,
       no_of_cycles_completed || 0,
